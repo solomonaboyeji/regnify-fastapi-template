@@ -12,11 +12,34 @@ services:
     command: uvicorn src.main:app --reload --port 8100
 
     environment:
+      - APP_NAME=REGNIFY HTTP API
+      - ADMIN_EMAIL=admin@regnify.com
+      - ADMIN_FIRST_NAME=Gabriel
+      - ADMIN_LAST_NAME=Doe
+      - ADMIN_PASSWORD=worldSecret
+      
+      - ALLOW_ORIGINS=http://localhost,http://localhost:8000
+      - ALLOW_ORIGIN_REGEX=https://.*\\.regnify\\.com|https://.*\\.azurestaticapps\\.net|https://.*\\.netlify\\.app
+      
+      - DOC_URL=/docs
+      - REDOC_URL=/redoc
+
+      - ACCESS_TOKEN_EXPIRE_MINUTES=30 # minute
+      - SECRET_KEY=435d942a9df98435c01352d03c3fac49a906aac86b5a73c93614b407e945b7a1ad1413868b482aac69d96ecc3e407fa7c21b0ba8f4377be5e014590adb71e7ceebcccb94625cb1bb612f382145c2a57c5a0379954eb3aca449ed
+
+      - ALGORITHM=HS256
+      
+      - DEFAULT_AVATAR_URL=https://via.placeholder.com/500
+
+      - ADMIN_SIGNUP_TOKEN=435d942a9df98435c01352d03c3fac49
+
       - DB_USER=regnify1234
       - DB_PASSWORD=REGNIFY885
       - DB_HOST=postgres
       - DB_NAME=regnify-db1234
       - DB_PORT=5432
+
+      - ADMIN_SIGNUP_TOKEN=please-set-me
 
     depends_on:
       - postgres

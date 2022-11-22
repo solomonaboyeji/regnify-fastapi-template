@@ -1,6 +1,8 @@
 """User's Router"""
+from typing import Optional
+from urllib import request
 from uuid import UUID
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Header
 
 from src.auth.dependencies import get_current_active_user, has_admin_token_in_header
 from src.database import get_db
@@ -56,8 +58,13 @@ def create_user_unauthenticated(
 def create_user(
     user: schemas.UserCreate,
     user_service: UserService = Depends(initiate_user_service),
+    admin_signup_token: str = Header(
+        None,
+        max_length=50,
+        description="The correct admin token to admin only features",
+    ),
 ):
-    result = user_service.create_user(user)
+    result = user_service.create_user(user, admin_signup_token=admin_signup_token)  # type: ignore
     return handle_result(result, schemas.UserOut)  # type: ignore
 
 

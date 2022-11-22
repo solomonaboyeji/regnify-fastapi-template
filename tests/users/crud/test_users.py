@@ -1,5 +1,7 @@
+import pytest
 from datetime import timedelta
 from jose import jwt
+from src.exceptions import GeneralException
 from src.security import create_access_token
 from src.users.crud import UserCRUD
 from src.users.models import User
@@ -49,3 +51,14 @@ def test_create_user(test_db):
     )
     logger.info(user.email)
     assert user.email == email_under_test
+
+
+def test_create_user_with_existing_email(user_crud: UserCRUD):
+    email_under_test = "3@regnify.com"
+
+    with pytest.raises(GeneralException):
+        user_crud.create_user(
+            UserCreate(
+                email=email_under_test, last_name="1", first_name="2", password="3"
+            )
+        )

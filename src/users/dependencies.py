@@ -1,7 +1,9 @@
 from sqlalchemy.orm import Session
 from fastapi import Depends, HTTPException
 from src.auth.dependencies import get_current_active_user
+from src.config import Settings
 from src.database import get_db
+from src.service import get_settings
 from src.users.permissions import CAN_CREATE_SPECIAL_USER, CAN_READ_ALL_USERS
 
 from src.users.schemas import UserOut
@@ -41,5 +43,6 @@ def can_read_all_users(current_user: UserOut = Depends(get_current_active_user))
 def initiate_user_service(
     current_user: UserOut = Depends(get_current_active_user),
     db: Session = Depends(get_db),
+    app_settings: Settings = Depends(get_settings),
 ):
-    return UserService(requesting_user=current_user, db=db)
+    return UserService(requesting_user=current_user, db=db, app_settings=app_settings)

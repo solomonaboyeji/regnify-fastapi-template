@@ -52,6 +52,8 @@ class Settings(BaseSettings):
 
     default_avatar_url: str = os.getenv("DEFAULT_AVATAR_URL", None)  # type: ignore
 
+    admin_signup_token: str = os.getenv("ADMIN_SIGNUP_TOKEN", "not-set")  # type: ignore
+
     def get_full_database_url(self):
         return f"postgresql://{self.db_user}:{self.db_password}@{self.db_host}:{self.db_port}/{self.db_name}"
 

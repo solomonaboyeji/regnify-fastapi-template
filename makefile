@@ -1,17 +1,30 @@
+
+# ****************** DIRECT DEVELOPMENT ****************** #
+
 start-uvicorn:
 	uvicorn src.main:app --reload --port 8100
 
 start-dev-postgres:
 	docker-compose -f ./docker/local/compose-files/docker-compose-postgres.yml up
 
-# ** ALEMBIC
+# ****************** END DIRECT DEVELOPMENT ****************** #
+
+# -- 
+# -- 
+# -- 
+
+# ****************** ALEMBIC ****************** #
 
 run-db-upgrade:
 	alembic upgrade head
 
-# ** END ALEMBIC
+# ****************** END ALEMBIC ****************** #
 
-# *** TESTS
+# -- 
+# -- 
+# -- 
+
+# ****************** TESTS ****************** #
 
 build-test:
 	docker compose -f docker/test/docker-compose-test.yml build 
@@ -23,7 +36,9 @@ run-test-migrations:
 	docker compose -f docker/test/docker-compose-test.yml run -v ${PWD}:/usr/src/regnify-api  --rm regnify-api alembic upgrade head
 
 
-# * ------ User Modules ------ * #
+# * ------ User Module ------ * #
+
+# Runs all tests under the user modules
 run-test-users:
 	make kill-test
 
@@ -66,7 +81,15 @@ run-test-users-http:
 
 # * ------ End User Modules ------ * #
 
-# *** END TESTS
+# ****************** END TESTS ****************** #
+
+# -- 
+# -- 
+# -- 
+
+# ****************** MISC ****************** #
 
 create-network:
 	docker network create regnify-network
+
+# ****************** END MISC ****************** #

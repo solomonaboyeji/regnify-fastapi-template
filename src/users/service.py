@@ -1,6 +1,7 @@
 from typing import Any
 from uuid import UUID
 from sqlalchemy.orm import Session
+from src.config import Settings
 from src.exceptions import GeneralException
 from src.service import BaseService, ServiceResult
 
@@ -11,14 +12,19 @@ from src.users.models import User
 
 
 class UserService(BaseService):
-    def __init__(self, requesting_user: schemas.UserOut, db: Session) -> None:
+    def __init__(
+        self, requesting_user: schemas.UserOut, db: Session, app_settings: Settings
+    ) -> None:
         super().__init__(requesting_user, db)
         self.users_crud = UserCRUD(db)
+        self.app_settings: Settings = app_settings
 
         if requesting_user is None:
             raise GeneralException("Requesting User was not provided.")
 
-    def create_user(self, user: schemas.UserCreate) -> ServiceResult:
+    def create_user(
+        self, user: schemas.UserCreate, admin_signup_token: str = None  # type: ignore
+    ) -> ServiceResult:
         db_user: User = self.users_crud.get_user_by_email(email=user.email)
         if db_user:
             return ServiceResult(
@@ -29,7 +35,19 @@ class UserService(BaseService):
                 ),
             )
         try:
-            created_user = self.users_crud.create_user(user)
+            should_make_active = False
+            if (
+                admin_signup_token is not None
+                and self.app_settings.admin_signup_token.lower()
+                == admin_signup_token.lower()
+            ):
+                should_make_active = True
+            else:
+                user.is_super_admin = False
+
+            created_user = self.users_crud.create_user(
+                user, should_make_active, user.is_super_admin
+            )
         except GeneralException as raised_exception:
             return ServiceResult(data=None, success=False, exception=raised_exception)
 

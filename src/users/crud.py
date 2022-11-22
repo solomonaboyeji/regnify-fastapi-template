@@ -7,6 +7,8 @@ from src.users import models, schemas
 from src.users.config import get_default_avatar_url
 from src.users.exceptions import ProfileNotFoundException
 
+from sqlalchemy.exc import IntegrityError
+
 
 class UserCRUD:
     def __init__(self, db: Session) -> None:
@@ -59,6 +61,11 @@ class UserCRUD:
             self.db.commit()
             self.db.refresh(db_user)
             return db_user
+        except IntegrityError as raised_exception:
+            self.logger.exception(raised_exception)
+            self.logger.error(raised_exception)
+            self.db.rollback()
+            raise GeneralException("A user with that email address already exist.")
         except Exception as raised_exception:
             self.logger.exception(raised_exception)
             self.logger.error(raised_exception)

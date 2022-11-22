@@ -4,11 +4,20 @@ from src.users.crud import UserCRUD
 from src.users.models import User
 from src.users.schemas import UserCreate
 
-from src.config import setup_logger
+from src.config import Settings, setup_logger
+from src.users.service import UserService
 
 logger = setup_logger()
 
 TEST_CACHE = {}
+
+
+@pytest.fixture()
+def user_service(test_db, test_user):
+    user_service = UserService(
+        db=test_db, requesting_user=test_user, app_settings=Settings()
+    )
+    return user_service
 
 
 @pytest.fixture()

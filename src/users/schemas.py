@@ -14,6 +14,7 @@ class UserBase(BaseModel):
 
 
 class UserCreate(UserBase):
+    is_super_admin: bool = False
     last_name: constr(max_length=100)  # type: ignore
     first_name: constr(max_length=100)  # type: ignore
     password: str
