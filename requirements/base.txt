@@ -1,0 +1,17 @@
+black
+pylint
+uvicorn[standard]
+python-multipart
+python-jose[cryptography]
+passlib[bcrypt]
+fastapi-utils
+sqlalchemy==1.4.44
+psycopg2-binary==2.9.5
+alembic==1.8.1
+python-dateutil==2.8.2
+python-dotenv==0.21.0
+loguru==0.6.0
+pytest
+coverage
+pytest-cov
+fastapi[all]

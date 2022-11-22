@@ -1,0 +1,21 @@
+# Use postgres/example user/password credentials
+version: '3.1'
+
+services:
+
+  regnify-postgres:
+    image: postgres:15.0-alpine
+    container_name: regnify-standard-core-postgres-db
+    restart: always
+    ports:
+      - 5432:5432
+    environment:
+      POSTGRES_USER: regnify1234
+      POSTGRES_PASSWORD: REGNIFY885
+      POSTGRES_DB: regnify-db1234
+
+  adminer:
+    image: adminer
+    restart: always
+    ports:
+      - 8080:8080

@@ -1,0 +1,38 @@
+# Use postgres/example user/password credentials
+version: '3.1'
+
+services:
+  regnify-api:
+    container_name: regnify-api
+    image: regnify-api
+    build: 
+      context: ../../
+      dockerfile: docker/Dockerfile
+    
+    command: uvicorn src.main:app --reload --port 8100
+
+    environment:
+      - DB_USER=regnify1234
+      - DB_PASSWORD=REGNIFY885
+      - DB_HOST=postgres
+      - DB_NAME=regnify-db1234
+      - DB_PORT=5432
+
+    depends_on:
+      - postgres
+
+  postgres:
+    image: postgres:15.0-alpine
+    container_name: regnify-postgres
+    restart: always
+    ports:
+      - 5433:5432
+    environment:
+      POSTGRES_USER: regnify1234
+      POSTGRES_PASSWORD: REGNIFY885
+      POSTGRES_DB: regnify-db1234
+
+networks:
+  default:
+    external: true
+    name: regnify-network
