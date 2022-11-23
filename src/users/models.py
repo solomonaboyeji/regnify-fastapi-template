@@ -53,7 +53,7 @@ class Profile(Base):
         postgresql.UUID(as_uuid=True), primary_key=True, index=True, default=uuid.uuid4
     )
     avatar_url = Column(String, nullable=True)
-    other_names = Column(String(100))
+    first_name = Column(String(100))
     last_name = Column(String(100))
     dob = Column(Date, nullable=True)
 

@@ -1,8 +1,6 @@
 """User's Router"""
-from typing import Optional
-from urllib import request
 from uuid import UUID
-from fastapi import APIRouter, Depends, Header
+from fastapi import APIRouter, Depends, Header, Path
 
 from src.auth.dependencies import get_current_active_user, has_admin_token_in_header
 from src.database import get_db
@@ -17,7 +15,7 @@ from src.users.dependencies import (
 from src.users.schemas import ManyUsersInDB, UserOut
 from src.users.service import UserService
 
-router = APIRouter(tags=["Users"])
+router = APIRouter(tags=["Users"], prefix="/users")
 
 
 @router.get(
@@ -39,7 +37,7 @@ def create_special_user(username: str):
 
 
 @router.post(
-    "/users/unsecure",
+    "/unsecure",
     response_model=schemas.UserOut,
 )
 def create_user_unauthenticated(
@@ -52,7 +50,7 @@ def create_user_unauthenticated(
 
 
 @router.post(
-    "/users",
+    "/",
     response_model=schemas.UserOut,
 )
 def create_user(
@@ -68,8 +66,21 @@ def create_user(
     return handle_result(result, schemas.UserOut)  # type: ignore
 
 
+@router.put(
+    "/{user_id}",
+    response_model=schemas.UserOut,
+)
+def update_user(
+    user: schemas.UserUpdate,
+    user_id: UUID = Path(),
+    user_service: UserService = Depends(initiate_user_service),
+):
+    result = user_service.update_user(user_id, user)  # type: ignore
+    return handle_result(result, schemas.UserOut)  # type: ignore
+
+
 @router.get(
-    "/users/", response_model=ManyUsersInDB, dependencies=[Depends(can_read_all_users)]
+    "/", response_model=ManyUsersInDB, dependencies=[Depends(can_read_all_users)]
 )
 def read_users(
     common: CommonQueryParams = Depends(),
@@ -80,7 +91,7 @@ def read_users(
 
 
 @router.get(
-    "/users/{user_id}",
+    "/{user_id}",
     response_model=schemas.UserOut,
 )
 def read_user(
@@ -89,29 +100,3 @@ def read_user(
 ):
     result = user_service.get_user_by_id(id=user_id)
     return handle_result(result, schemas.UserOut)  # type: ignore
-
-
-@router.post("/users/{user_id}/items/", response_model=schemas.Item)
-def create_item_for_user(
-    user_id: int,
-    item: schemas.ItemCreate,
-    user_service: UserService = Depends(initiate_user_service),
-):
-    return handle_result(
-        user_service.create_user_item(item, user_id=user_id),
-        expected_schema=schemas.Item,  # type: ignore
-    )
-
-
-@router.get(
-    "/items/",
-    response_model=list[schemas.ManyItems],
-)
-def read_items(
-    common: CommonQueryParams = Depends(),
-    user_service: UserService = Depends(initiate_user_service),
-):
-    return handle_result(
-        user_service.get_items(skip=common.skip, limit=common.limit),
-        expected_schema=schemas.ManyItems,  # type: ignore
-    )

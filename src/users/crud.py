@@ -5,7 +5,7 @@ from src.exceptions import GeneralException
 from src.security import get_password_hash
 from src.users import models, schemas
 from src.users.config import get_default_avatar_url
-from src.users.exceptions import ProfileNotFoundException
+from src.users.exceptions import ProfileNotFoundException, UserNotFoundException
 
 from sqlalchemy.exc import IntegrityError
 
@@ -27,8 +27,24 @@ class UserCRUD:
     def get_total_users(self) -> int:
         return self.db.query(models.User).count()
 
-    def get_total_items(self) -> int:
-        return 0
+    def update_user(self, user_id: UUID, data: schemas.UserUpdate):
+        user: models.User = self.get_user(user_id)  # type: ignore
+        if not user:
+            return UserNotFoundException()
+
+        data_without_none: dict = data.dict(exclude_none=True)
+
+        for key in data_without_none:
+            setattr(user.profile, key, data_without_none[key])
+
+        for key in data_without_none:
+            setattr(user, key, data_without_none[key])
+
+        self.db.add(user)
+        self.db.commit()
+        self.db.refresh(user)
+
+        return user
 
     def create_user(
         self,
@@ -41,7 +57,7 @@ class UserCRUD:
                 schemas.ProfileCreate(
                     **{
                         "last_name": user.last_name,
-                        "other_names": user.first_name,
+                        "first_name": user.first_name,
                         "avatar_url": get_default_avatar_url(
                             user.first_name, user.last_name
                         ),
@@ -64,17 +80,13 @@ class UserCRUD:
         except IntegrityError as raised_exception:
             self.logger.exception(raised_exception)
             self.logger.error(raised_exception)
-            self.db.rollback()
             raise GeneralException("A user with that email address already exist.")
         except Exception as raised_exception:
             self.logger.exception(raised_exception)
             self.logger.error(raised_exception)
-            self.db.rollback()
             raise GeneralException(str(raised_exception))
-
-    def get_items(self, skip: int = 0, limit: int = 100):
-        return []
-        return db.query(models.Item).offset(skip).limit(limit).all()
+        finally:
+            self.db.rollback()
 
     def get_user_profile(self, user_id: str):
         db_profile = (

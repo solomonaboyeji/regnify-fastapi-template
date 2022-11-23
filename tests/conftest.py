@@ -1,3 +1,4 @@
+from functools import lru_cache
 import pytest
 from src.config import Settings
 from sqlalchemy import create_engine
@@ -20,12 +21,18 @@ def test_super_admin_email():
 
 
 @pytest.fixture()
+def test_non_admin_user_email():
+    return "nonAdminUser@regnify.com"
+
+
+@pytest.fixture()
 def test_db():
     app_settings = Settings()
 
     engine = create_engine(app_settings.get_full_database_url())
     SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
     db = SessionLocal()
+
     try:
         yield db
     finally:

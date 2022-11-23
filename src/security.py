@@ -30,7 +30,7 @@ def get_password_hash(password: str):
     return pwd_context.hash(password)
 
 
-def get_user(db: Session, username: str) -> UserInDB:
+def get_user(db: Session, username: str) -> models.User:
     user: models.User = db.query(models.User).filter(models.User.email == username).first()  # type: ignore
     if not user:
         raise UserNotFoundException(f"User with email {username} not found")
@@ -38,13 +38,13 @@ def get_user(db: Session, username: str) -> UserInDB:
     # * Load the user_roles
     user.user_roles
 
-    return UserInDB(**user.__dict__)
+    return user
 
 
 def authenticate_user(db: Session, username: str, password: str):
     user: UserInDB = get_user(db, username)
 
-    if not verify_password(password, user.hashed_password):
+    if not verify_password(password, str(user.hashed_password)):
         raise INVALID_AUTH_CREDENTIALS_EXCEPTION
 
     return user

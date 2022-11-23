@@ -1,11 +1,12 @@
+import email
 import pytest
 from datetime import timedelta
 from jose import jwt
 from src.exceptions import GeneralException
 from src.security import create_access_token
 from src.users.crud import UserCRUD
-from src.users.models import User
-from src.users.schemas import UserCreate
+from src.users.models import Profile, User
+from src.users.schemas import UserCreate, UserUpdate
 
 from src.config import setup_logger
 
@@ -62,3 +63,27 @@ def test_create_user_with_existing_email(user_crud: UserCRUD):
                 email=email_under_test, last_name="1", first_name="2", password="3"
             )
         )
+
+
+def test_update_user(user_crud: UserCRUD):
+    email_under_test = "3@regnify.com"
+
+    # * getting user with a wrong email address
+    none_user = user_crud.get_user_by_email("no-user@regnify.com")
+    assert none_user == None
+
+    user = user_crud.get_user_by_email(email_under_test)
+    assert user != None
+
+    user_crud.update_user(
+        user.id, UserUpdate(first_name="User3", last_name="3User", is_active=False, is_super_admin=False)  # type: ignore
+    )
+
+    updated_user: User = user_crud.get_user(user.id)  # type: ignore
+
+    assert updated_user.email == email_under_test
+    assert isinstance(updated_user.profile, Profile)
+    assert updated_user.profile.last_name == "3User"
+    assert updated_user.profile.first_name == "User3"
+    assert not updated_user.is_active
+    assert not updated_user.is_super_admin

@@ -1,13 +1,26 @@
 """Pydantic Models"""
+from sqlalchemy.orm import Query
 
 from datetime import datetime
 from typing import Optional
 from uuid import UUID
-from pydantic import BaseModel, constr
+from pydantic import BaseModel, constr, validator
+
+from src.users.models import Profile
 
 
 class UserBase(BaseModel):
     email: str
+
+    # Pre-processing validator that evaluates lazy relationships before any other validation
+    # NOTE: If high throughput/performance is a concern, you can/should probably apply
+    #       this validator in a more targeted fashion instead of a wildcard in a base class.
+    #       This approach is by no means slow, but adds a minor amount of overhead for every field
+    @validator("*", pre=True)
+    def load_profile(cls, v):
+        if isinstance(v, Profile):
+            return ProfileOut.from_orm(v)
+        return v
 
     class Config:
         orm_mode = True
@@ -20,8 +33,33 @@ class UserCreate(UserBase):
     password: str
 
 
+class UserUpdate(BaseModel):
+    is_active: Optional[bool] = None
+    is_super_admin: Optional[bool] = None
+    last_name: Optional[constr(max_length=100)]  # type: ignore
+    first_name: Optional[constr(max_length=100)]  # type: ignore
+
+
 class MiniRoleOut(BaseModel):
     permissions: list[str]
+
+
+class ProfileBase(BaseModel):
+    last_name: constr(max_length=100)  # type: ignore
+    first_name: constr(max_length=100)  # type: ignore
+    avatar_url: str
+
+    class Config:
+        orm_mode = True
+
+
+class ProfileCreate(ProfileBase):
+    pass
+
+
+class ProfileOut(ProfileBase):
+    pass
+    # id: UUID
 
 
 class UserOut(UserBase):
@@ -29,6 +67,10 @@ class UserOut(UserBase):
     is_active: bool
     is_super_admin: bool
     user_roles: list[MiniRoleOut]
+    profile: ProfileOut
+
+    class Config:
+        orm_mode = True
 
 
 class ManyUsersInDB(BaseModel):
@@ -55,16 +97,6 @@ class UserInDB(UserOut):
 class ItemBase(BaseModel):
     title: str
     description: Optional[str]
-
-
-class ProfileBase(BaseModel):
-    last_name: constr(max_length=100)  # type: ignore
-    other_names: constr(max_length=100)  # type: ignore
-    avatar_url: str
-
-
-class ProfileCreate(ProfileBase):
-    pass
 
 
 class ItemCreate(ItemBase):

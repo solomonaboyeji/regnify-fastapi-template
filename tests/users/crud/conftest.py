@@ -1,4 +1,6 @@
 import pytest
+from src.config import Settings
+from src.database import get_db
 
 from src.users.crud import UserCRUD
 
