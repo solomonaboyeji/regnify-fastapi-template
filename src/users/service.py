@@ -2,6 +2,7 @@ from uuid import UUID
 from sqlalchemy.orm import Session
 from src.config import Settings, setup_logger
 from src.exceptions import BaseForbiddenException, GeneralException
+from src.security import get_password_hash
 from src.service import BaseService, ServiceResult
 
 from src.users import schemas
@@ -34,6 +35,17 @@ class UserService(BaseService):
                 )
 
             updated_user = self.users_crud.update_user(id, user)
+        except UserNotFoundException as raised_exception:
+            return ServiceResult(data=None, success=False, exception=raised_exception)
+
+        return ServiceResult(data=updated_user, success=True)
+
+    def update_user_password(self, id: UUID, new_password: str) -> ServiceResult:
+        hashed_password = get_password_hash(new_password)
+        try:
+            updated_user = self.users_crud.update_user_password(
+                user_id=id, hashed_password=hashed_password
+            )
         except UserNotFoundException as raised_exception:
             return ServiceResult(data=None, success=False, exception=raised_exception)
 

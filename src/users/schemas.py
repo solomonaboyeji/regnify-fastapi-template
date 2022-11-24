@@ -40,6 +40,10 @@ class UserUpdate(BaseModel):
     first_name: Optional[constr(max_length=100)]  # type: ignore
 
 
+class ChangePassword(BaseModel):
+    password: str
+
+
 class MiniRoleOut(BaseModel):
     permissions: list[str]
 

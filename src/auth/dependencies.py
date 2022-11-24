@@ -61,3 +61,12 @@ def get_current_active_user(current_user: UserOut = Depends(get_current_user)):
         )
 
     return current_user
+
+
+def user_must_be_admin(current_user: UserOut = Depends(get_current_user)):
+    if not current_user.is_super_admin:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, detail="Inactive user"
+        )
+
+    return current_user

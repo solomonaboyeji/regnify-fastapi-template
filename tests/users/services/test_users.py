@@ -1,5 +1,5 @@
 from uuid import uuid4
-import pytest
+from wsgiref.simple_server import server_version
 
 from src.service import ServiceResult
 from src.users.exceptions import UserNotFoundException
@@ -111,3 +111,18 @@ def test_update_user(test_db, app_settings, test_admin_user):
     assert result.data.profile.last_name == "User222"
     assert result.data.is_active == False
     assert result.data.is_super_admin
+
+
+def test_change_password(user_service: UserService):
+    service_result = user_service.get_user_by_email(prefix + "2@regnify.com")
+    assert isinstance(service_result, ServiceResult)
+    user_under_test: User = service_result.data
+    old_hashed_password = user_under_test.hashed_password
+    service_result = user_service.update_user_password(user_under_test.id, "new-password")  # type: ignore
+    assert isinstance(service_result, ServiceResult)
+    updated_user: User = service_result.data
+    assert old_hashed_password != updated_user.hashed_password
+
+    # * try updating a user that does not exist
+    service_result = user_service.update_user_password(uuid4(), "new-password")  # type: ignore
+    assert not service_result.success

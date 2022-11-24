@@ -143,3 +143,28 @@ def test_an_admin_can_change_active_status_of_any_user(
     response = client.get("/users/token", headers=test_non_admin_user_headers)
     assert response.status_code == 200, response.content
     assert response.json()["is_active"] == True
+
+
+def test_admin_can_change_a_user_password(
+    client: TestClient,
+    test_admin_user_headers: dict,
+    test_non_admin_user_headers: dict,
+    test_non_admin_user: dict,
+    test_password: str,
+):
+
+    user_data = {"password": test_password}
+    response = client.put(
+        f"/users/{test_non_admin_user['id']}/change-user-password",
+        json=user_data,
+        headers=test_admin_user_headers,
+    )
+    assert response.status_code == 200, response.content
+
+    user_data = {"password": test_password}
+    response = client.put(
+        f"/users/{test_non_admin_user['id']}/change-user-password",
+        json=user_data,
+        headers=test_non_admin_user_headers,
+    )
+    assert response.status_code == 403, response.content

@@ -1,5 +1,6 @@
 from uuid import UUID
 from sqlalchemy.orm import Session
+from sqlalchemy import update
 from src.config import setup_logger
 from src.exceptions import GeneralException
 from src.security import get_password_hash
@@ -26,6 +27,20 @@ class UserCRUD:
 
     def get_total_users(self) -> int:
         return self.db.query(models.User).count()
+
+    def update_user_password(self, user_id: UUID, hashed_password: str) -> models.User:
+        user: models.User = self.get_user(user_id)  # type: ignore
+        if not user:
+            raise UserNotFoundException(f"User with ID {user_id} does not exist")
+
+        setattr(user, "hashed_password", hashed_password)
+        self.logger.debug(hashed_password)
+        self.logger.debug(user.hashed_password)
+        self.db.add(user)
+        self.db.commit()
+        self.db.refresh(user)
+
+        return user
 
     def update_user(self, user_id: UUID, data: schemas.UserUpdate):
         user: models.User = self.get_user(user_id)  # type: ignore

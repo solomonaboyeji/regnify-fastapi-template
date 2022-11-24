@@ -3,10 +3,10 @@ import pytest
 from datetime import timedelta
 from jose import jwt
 from src.exceptions import GeneralException
-from src.security import create_access_token
+from src.security import create_access_token, get_password_hash
 from src.users.crud import UserCRUD
 from src.users.models import Profile, User
-from src.users.schemas import UserCreate, UserUpdate
+from src.users.schemas import UserCreate, UserOut, UserUpdate
 
 from src.config import setup_logger
 
@@ -87,3 +87,13 @@ def test_update_user(user_crud: UserCRUD):
     assert updated_user.profile.first_name == "User3"
     assert not updated_user.is_active
     assert not updated_user.is_super_admin
+
+
+def test_change_password(user_crud: UserCRUD):
+    email_under_test = "3@regnify.com"
+    old_user = user_crud.get_user_by_email(email_under_test)
+    assert old_user != None
+    old_hashed_password = old_user.hashed_password
+    hashed_password = get_password_hash("new-password")
+    new_user = user_crud.update_user_password(old_user.id, hashed_password)  # type: ignore
+    assert new_user.hashed_password != old_hashed_password

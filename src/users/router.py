@@ -2,7 +2,11 @@
 from uuid import UUID
 from fastapi import APIRouter, Depends, Header, Path
 
-from src.auth.dependencies import get_current_active_user, has_admin_token_in_header
+from src.auth.dependencies import (
+    get_current_active_user,
+    has_admin_token_in_header,
+    user_must_be_admin,
+)
 from src.database import get_db
 from src.pagination import CommonQueryParams
 from src.service import handle_result
@@ -76,6 +80,20 @@ def update_user(
     user_service: UserService = Depends(initiate_user_service),
 ):
     result = user_service.update_user(user_id, user)  # type: ignore
+    return handle_result(result, schemas.UserOut)  # type: ignore
+
+
+@router.put(
+    "/{user_id}/change-user-password",
+    response_model=schemas.UserOut,
+    dependencies=[Depends(user_must_be_admin)],
+)
+def change_user_password(
+    data: schemas.ChangePassword,
+    user_id: UUID = Path(),
+    user_service: UserService = Depends(initiate_user_service),
+):
+    result = user_service.update_user_password(user_id, data.password)
     return handle_result(result, schemas.UserOut)  # type: ignore
 
 
