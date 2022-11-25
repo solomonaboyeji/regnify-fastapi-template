@@ -1,9 +1,19 @@
+import datetime
+from datetime import timedelta
+from typing import Any, Union
 from uuid import UUID
+
+from jose import jwt
 from sqlalchemy.orm import Session
 from src.config import Settings, setup_logger
 from src.exceptions import BaseForbiddenException, GeneralException
-from src.security import get_password_hash
-from src.service import BaseService, ServiceResult
+from src.security import decode_token, get_password_hash, get_user
+from src.service import (
+    BaseService,
+    ServiceResult,
+    failed_service_result,
+    success_service_result,
+)
 
 from src.users import schemas
 from src.users.crud import UserCRUD
@@ -23,7 +33,7 @@ class UserService(BaseService):
         if requesting_user is None:
             raise GeneralException("Requesting User was not provided.")
 
-    def update_user(self, id: UUID, user: schemas.UserUpdate) -> ServiceResult:
+    def update_user(self, id: UUID, user: schemas.UserUpdate) -> ServiceResult[Union[User, None]]:
         try:
             if user.is_active is not None and not self.requesting_user.is_super_admin:
                 return ServiceResult(
@@ -40,7 +50,9 @@ class UserService(BaseService):
 
         return ServiceResult(data=updated_user, success=True)
 
-    def update_user_password(self, id: UUID, new_password: str) -> ServiceResult:
+    def update_user_password(
+        self, id: UUID, new_password: str
+    ) -> ServiceResult[Union[User, None]]:
         hashed_password = get_password_hash(new_password)
         try:
             updated_user = self.users_crud.update_user_password(
@@ -53,7 +65,7 @@ class UserService(BaseService):
 
     def create_user(
         self, user: schemas.UserCreate, admin_signup_token: str = None  # type: ignore
-    ) -> ServiceResult:
+    ) -> ServiceResult[Union[User, None]]:
         db_user: User = self.users_crud.get_user_by_email(email=user.email)
         if db_user:
             return ServiceResult(
@@ -89,7 +101,7 @@ class UserService(BaseService):
         users_data = {"total": total_db_users, "data": db_users}
         return ServiceResult(data=users_data, success=True)
 
-    def get_user_by_id(self, id: UUID) -> ServiceResult:
+    def get_user_by_id(self, id: UUID) -> ServiceResult[Union[User, None]]:
         db_user: User = self.users_crud.get_user(id)  # type: ignore
         if not db_user:
             return ServiceResult(
@@ -100,7 +112,7 @@ class UserService(BaseService):
 
         return ServiceResult(data=db_user, success=True)
 
-    def get_user_by_email(self, email: str) -> ServiceResult:
+    def get_user_by_email(self, email: str) -> ServiceResult[Union[User, None]]:
         db_user: User = self.users_crud.get_user_by_email(email)  # type: ignore
         if not db_user:
             return ServiceResult(
@@ -110,6 +122,55 @@ class UserService(BaseService):
             )
 
         return ServiceResult(data=db_user, success=True)
+
+    def create_request_password(self, email: str) -> ServiceResult[Union[str, None]]:
+        result = self.get_user_by_email(email)
+        if result.success:
+            expires_in = datetime.datetime.utcnow() + timedelta(
+                minutes=self.app_settings.password_request_minutes
+            )
+            to_encode: dict[str, Any] = {
+                "sub": str(result.data.id),
+                "exp": expires_in,
+                "type": "PASSWORD_REQUEST",
+            }
+            encoded_jwt = jwt.encode(
+                to_encode,
+                self.app_settings.secret_key_for_tokens,
+                algorithm=self.app_settings.algorithm,
+            )
+            return ServiceResult(data=encoded_jwt, success=True)
+
+        return result
+
+    def change_password_with_token(
+        self, token: str, new_password: str
+    ) -> ServiceResult[Union[schemas.UserOut, None]]:
+        payload = decode_token(
+            token, self.app_settings.secret_key_for_tokens, self.app_settings.algorithm
+        )
+        user_id = payload["sub"]
+        expires_in = payload["exp"]
+        expires_in_date = datetime.datetime.utcfromtimestamp(expires_in)
+        todays_date = datetime.datetime.utcnow()
+
+        if expires_in_date < todays_date:
+            return failed_service_result(
+                BaseForbiddenException("The token has expired.")
+            )
+
+        get_user_result = self.get_user_by_id(user_id)
+        if not get_user_result.success:
+            return failed_service_result(
+                UserNotFoundException("There is something wrong with the token.")
+            )
+
+        self.logger.info(new_password)
+        updated_user = self.users_crud.update_user_password(
+            user_id, get_password_hash(new_password)
+        )
+
+        return success_service_result(updated_user)
 
     def create_user_item(self, item: schemas.ItemCreate, user_id: int) -> ServiceResult:
         return ServiceResult(data=item, success=True)

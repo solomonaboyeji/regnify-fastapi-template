@@ -15,3 +15,5 @@ pytest
 coverage
 pytest-cov
 fastapi[all]
+fastapi-mail==1.2.1
+pytest-asyncio

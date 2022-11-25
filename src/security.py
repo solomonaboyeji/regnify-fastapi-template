@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta
 from typing import Any
+from uuid import UUID
 from passlib.context import CryptContext
 
 from sqlalchemy.orm import Session
@@ -20,6 +21,16 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
 def fake_hash_password(password: str):
     return "fakehashed" + password
+
+
+def decode_token(token: str, secret_key: str, algorithm: str):
+    payload = jwt.decode(
+        token=token,
+        key=secret_key,
+        algorithms=[algorithm],
+    )
+
+    return payload
 
 
 def verify_password(plain_password: str, hashed_password: str):

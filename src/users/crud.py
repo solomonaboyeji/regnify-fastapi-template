@@ -34,8 +34,6 @@ class UserCRUD:
             raise UserNotFoundException(f"User with ID {user_id} does not exist")
 
         setattr(user, "hashed_password", hashed_password)
-        self.logger.debug(hashed_password)
-        self.logger.debug(user.hashed_password)
         self.db.add(user)
         self.db.commit()
         self.db.refresh(user)

@@ -1,5 +1,5 @@
 from functools import lru_cache
-from typing import Any
+from typing import Any, Generic, TypeVar
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from src.config import Settings
@@ -16,13 +16,19 @@ from src.exceptions import (
 
 from src.users import schemas
 
+_T = TypeVar("_T")
+
 
 @lru_cache()
 def get_settings():
     return Settings()
 
 
-class ServiceResult:
+class AppResponseModel(BaseModel):
+    detail: str
+
+
+class ServiceResult(Generic[_T]):
     def __init__(
         self, data: Any, success: bool, message: str = "", exception: Exception = None  # type: ignore
     ) -> None:
@@ -44,12 +50,23 @@ class BaseService:
         self.db = db
 
 
-def handle_result(result: ServiceResult, expected_schema: BaseModel):
+def success_service_result(data: Any):
+    return ServiceResult(data=data, success=True, exception=None)  # type: ignore
+
+
+def failed_service_result(exception: Exception):  # type: ignore
+    return ServiceResult(data=None, success=False, exception=exception)  # type: ignore
+
+
+def handle_result(result: ServiceResult, expected_schema: BaseModel = None):  # type: ignore
     """Handles the result returned from any service in the application, both failures and successes."""
 
     if result.success:
         try:
-            return expected_schema.from_orm(result.data)
+            if expected_schema is not None:
+                return expected_schema.from_orm(result.data)
+            else:
+                return AppResponseModel(detail=result.data)
         except Exception as raised_exception:
             handle_bad_request_exception(raised_exception)
 

@@ -1,4 +1,3 @@
-from functools import lru_cache
 import pytest
 from src.config import Settings
 from sqlalchemy import create_engine

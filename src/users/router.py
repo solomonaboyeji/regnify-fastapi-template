@@ -1,25 +1,34 @@
 """User's Router"""
+
 from uuid import UUID
-from fastapi import APIRouter, Depends, Header, Path
+from pydantic import EmailStr
+from fastapi import APIRouter, Depends, Header, Path, Query
+from src import mail as mail_funcs
 
 from src.auth.dependencies import (
     get_current_active_user,
     has_admin_token_in_header,
     user_must_be_admin,
 )
-from src.database import get_db
+from src.config import setup_logger
+from src.database import  get_db
+from src.service import AppResponseModel
 from src.pagination import CommonQueryParams
-from src.service import handle_result
+from src.service import  handle_result, success_service_result
 from src.users import schemas
 from src.users.dependencies import (
     can_create_special_user,
     can_read_all_users,
+    initiate_anonymous_user_service,
     initiate_user_service,
 )
-from src.users.schemas import ManyUsersInDB, UserOut
+from src.users.schemas import ChangePasswordWithToken, ManyUsersInDB, UserOut
 from src.users.service import UserService
 
 router = APIRouter(tags=["Users"], prefix="/users")
+
+
+logger = setup_logger()
 
 
 @router.get(
@@ -38,6 +47,40 @@ def create_special_user(username: str):
     """Creates Special User"""
 
     return {"username": username}
+
+
+@router.post("/request-password-change", response_model=AppResponseModel)
+async def request_password_change(
+    email: EmailStr = Query(),
+    user_service: UserService = Depends(initiate_anonymous_user_service),
+):
+    success_message = "A reset password information has been sent to the associated account's email address."
+    result_with_token = user_service.create_request_password(email)
+    if result_with_token.success:
+        user_with_email_result = user_service.get_user_by_email(email)
+        if not user_with_email_result.success:
+            logger.error("Unable to send email to user")
+            return
+        else:
+            await mail_funcs.send_change_password_request_mail(
+                user_with_email_result.data.email,
+                subject="Password Change Request",
+                reset_token=result_with_token.data,
+            )
+
+    return handle_result(success_service_result(success_message))  # type: ignore
+
+
+@router.put("/change-user-password", response_model=UserOut)
+async def change_user_password(
+    data: ChangePasswordWithToken,
+    user_service: UserService = Depends(initiate_anonymous_user_service),
+):
+    result = user_service.change_password_with_token(data.token, data.new_password)
+    if result.success:
+        await mail_funcs.send_password_changed_mail(result.data.email)
+
+    return handle_result(result, expected_schema=UserOut)  # type: ignore
 
 
 @router.post(
@@ -84,11 +127,11 @@ def update_user(
 
 
 @router.put(
-    "/{user_id}/change-user-password",
+    "/{user_id}/admin-change-user-password",
     response_model=schemas.UserOut,
     dependencies=[Depends(user_must_be_admin)],
 )
-def change_user_password(
+def admin_change_user_password(
     data: schemas.ChangePassword,
     user_id: UUID = Path(),
     user_service: UserService = Depends(initiate_user_service),

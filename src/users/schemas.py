@@ -44,6 +44,11 @@ class ChangePassword(BaseModel):
     password: str
 
 
+class ChangePasswordWithToken(BaseModel):
+    token: str
+    new_password: constr(max_length=255)  # type: ignore
+
+
 class MiniRoleOut(BaseModel):
     permissions: list[str]
 

@@ -39,8 +39,12 @@ class Settings(BaseSettings):
     doc_url: str = f"/{os.getenv('DOC_URL', 'docs')}"
     redoc_url: str = f"/{os.getenv('REDOC_URL', 'redoc')}"
 
-    access_code_expiring_minutes: int = int(
+    access_code_expiring_minutes: float = float(
         os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "30")
+    )
+
+    password_request_minutes: float = float(
+        os.getenv("PASSWORD_REQUEST_TOKEN_EXPIRE_MINUTES", "15")
     )
 
     # to get a string like this run:
@@ -48,11 +52,28 @@ class Settings(BaseSettings):
     secret_key: str = os.getenv(
         "SECRET_KEY", "d997f832a0ba79f7bc490e0cebb7b1a34c3f1ef4af1d9dd657d13ef106843166"
     )
+
+    secret_key_for_tokens: str = os.getenv(
+        "SECRET_KEY_FOR_TOKENS", "d997f832a0ba79f7bc490e0"
+    )
+
     algorithm: str = os.getenv("ALGORITHM", "HS256")
 
     default_avatar_url: str = os.getenv("DEFAULT_AVATAR_URL", None)  # type: ignore
 
     admin_signup_token: str = os.getenv("ADMIN_SIGNUP_TOKEN", "not-set")  # type: ignore
+
+    reset_password_ui_url: str = os.getenv("RESET_PASSWORD_UI_URL", "not-set")  # type: ignore
+
+    mail_username: str = os.getenv("MAIL_USERNAME", "not-set")  # type: ignore
+    mail_password: str = os.getenv("MAIL_PASSWORD", "not-set")  # type: ignore
+    mail_from: str = os.getenv("MAIL_FROM", "noreply@regnify.com")  # type: ignore
+    mail_port: int = int(os.getenv("MAIL_PORT", "587"))  # type: ignore
+    mail_server: str = os.getenv("MAIL_SERVER", "not-set")  # type: ignore
+    mail_server: str = os.getenv("MAIL_SERVER", "not-set")  # type: ignore
+    mail_starttls: bool = os.getenv("MAIL_START_TLS", "True") == "True"  # type: ignore
+    mail_ssl_tls: bool = os.getenv("MAIL_SSL_TLS", "False") == "True"  # type: ignore
+    use_credentials: bool = os.getenv("USE_CREDENTIALS", "False") == "True"  # type: ignore
 
     def get_full_database_url(self):
         return f"postgresql://{self.db_user}:{self.db_password}@{self.db_host}:{self.db_port}/{self.db_name}"

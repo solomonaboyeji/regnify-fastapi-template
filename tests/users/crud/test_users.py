@@ -1,4 +1,3 @@
-import email
 import pytest
 from datetime import timedelta
 from jose import jwt

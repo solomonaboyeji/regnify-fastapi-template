@@ -14,4 +14,7 @@
         "**/alembic": true,
         "**/__pycache__": true,
     },
+    "cSpell.words": [
+        "funcs"
+    ],
 }

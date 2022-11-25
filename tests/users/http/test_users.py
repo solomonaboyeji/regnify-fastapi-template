@@ -1,9 +1,10 @@
-from curses import use_default_colors
-from email import header
+import pytest
 from fastapi.testclient import TestClient
 
-from src.main import app
+from src.mail import fm
 from src.config import Settings, setup_logger
+from src.users.dependencies import anonymous_user
+from src.users.service import UserService
 
 logger = setup_logger()
 
@@ -155,16 +156,91 @@ def test_admin_can_change_a_user_password(
 
     user_data = {"password": test_password}
     response = client.put(
-        f"/users/{test_non_admin_user['id']}/change-user-password",
+        f"/users/{test_non_admin_user['id']}/admin-change-user-password",
         json=user_data,
         headers=test_admin_user_headers,
     )
     assert response.status_code == 200, response.content
 
+    # * non admin can not change the password
     user_data = {"password": test_password}
     response = client.put(
-        f"/users/{test_non_admin_user['id']}/change-user-password",
+        f"/users/{test_non_admin_user['id']}/admin-change-user-password",
         json=user_data,
         headers=test_non_admin_user_headers,
     )
     assert response.status_code == 403, response.content
+
+
+@pytest.mark.asyncio
+async def test_create_request_password(client: TestClient, test_non_admin_user: dict):
+    fm.config.SUPPRESS_SEND = 1
+    with fm.record_messages() as outbox:
+        response = client.post(
+            f"/users/request-password-change?email=" + test_non_admin_user["email"],
+        )
+        assert response.status_code == 200, response.content
+
+        # * test the mail has been sent
+        assert len(outbox) == 1
+        assert outbox[0]["To"] == test_non_admin_user["email"]
+
+
+@pytest.mark.asyncio
+async def test_user_can_change_password_with_token(
+    client: TestClient, test_non_admin_user: dict, test_password, app_settings, test_db
+):
+
+    response = client.post(
+        "/token",
+        data={"username": test_non_admin_user["email"], "password": test_password},
+    )
+    assert response.status_code == 200, response.content
+
+    user_service = UserService(
+        requesting_user=anonymous_user(), db=test_db, app_settings=app_settings
+    )
+    reset_password_token = user_service.create_request_password(
+        test_non_admin_user["email"]
+    )
+
+    fm.config.SUPPRESS_SEND = 1
+    with fm.record_messages() as outbox:
+        response = client.put(
+            "/users/change-user-password/",
+            json={"token": reset_password_token.data, "new_password": "newPassword"},
+        )
+        assert response.status_code == 200, response.content
+
+        # * test the mail has been sent
+        assert len(outbox) == 1
+        assert outbox[0]["To"] == test_non_admin_user["email"]
+
+    response = client.post(
+        "/token",
+        data={"username": test_non_admin_user["email"], "password": test_password},
+    )
+    assert response.status_code == 401, response.content
+
+    # * reset it back to the normal password
+    reset_password_token = user_service.create_request_password(
+        test_non_admin_user["email"]
+    )
+
+    fm.config.SUPPRESS_SEND = 1
+    with fm.record_messages() as outbox:
+        response = client.put(
+            "/users/change-user-password/",
+            json={"token": reset_password_token.data, "new_password": test_password},
+        )
+        assert response.status_code == 200, response.content
+
+        # * test the mail has been sent
+        assert len(outbox) == 1
+        assert outbox[0]["To"] == test_non_admin_user["email"]
+
+    response = client.post(
+        "/token",
+        data={"username": test_non_admin_user["email"], "password": test_password},
+    )
+    assert response.status_code == 200, response.content

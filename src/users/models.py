@@ -1,7 +1,6 @@
 """Contains the DB modules"""
 
 import uuid
-from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy import Boolean, Column, ForeignKey, Date, String, ARRAY, DateTime
 from sqlalchemy.orm import relationship
 from sqlalchemy.dialects import postgresql
@@ -9,7 +8,6 @@ from sqlalchemy.dialects import postgresql
 from sqlalchemy.sql.functions import func
 
 from src.database import Base
-from src.users.permissions import get_regular_user_permissions
 
 
 class User(Base):
