@@ -36,6 +36,7 @@ async def send_change_password_request_mail(
         "token": reset_token,
         "email": email,
         "reset_password_ui_url": app_settings.reset_password_ui_url,
+        "expires_in": app_settings.password_request_minutes,
     }
     message = MessageSchema(
         subject=subject,

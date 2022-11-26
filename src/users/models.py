@@ -30,6 +30,8 @@ class User(Base):
 
     user_roles = relationship("UserRoles", back_populates="user")
 
+    last_password_token = Column(String, default="")
+
 
 class UserRoles(Base):
     __tablename__ = "user_roles"

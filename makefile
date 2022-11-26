@@ -20,6 +20,45 @@ run-db-upgrade:
 
 # ****************** END ALEMBIC ****************** #
 
+
+
+# -- 
+# -- 
+# -- 
+
+
+# ****************** TESTS ****************** #
+
+build-local:
+	docker compose -f docker/local/docker-compose.yml build 
+
+kill-local:
+	docker compose -f docker/local/docker-compose.yml down
+
+run-local-migrations:
+	docker compose -f docker/local/docker-compose.yml run -v ${PWD}:/usr/src/regnify-api  --rm regnify-api  alembic upgrade head
+
+make init-platform:
+	docker compose -f docker/local/docker-compose.yml run -v ${PWD}:/usr/src/regnify-api --rm regnify-api python ./src/init_platform.py
+
+run:
+	make run-local-migrations
+
+	make make init-platform
+
+	docker compose -f docker/local/docker-compose.yml up  --remove-orphans  -d
+
+restart:
+	docker compose -f docker/local/docker-compose.yml down regnify-api
+	make run
+
+
+follow-logs:
+	docker compose -f docker/local/docker-compose.yml logs regnify-api -f
+
+
+# ****************** END TESTS ****************** #
+
 # -- 
 # -- 
 # -- 
@@ -29,7 +68,7 @@ run-db-upgrade:
 build-test:
 	docker compose -f docker/test/docker-compose-test.yml build 
 
-kill-test:
+kill-test: kill-local
 	docker compose -f docker/test/docker-compose-test.yml down
 
 run-test-migrations:

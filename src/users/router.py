@@ -1,5 +1,6 @@
 """User's Router"""
 
+from ctypes import resize
 from uuid import UUID
 from pydantic import EmailStr
 from fastapi import APIRouter, Depends, Header, Path, Query
@@ -11,10 +12,10 @@ from src.auth.dependencies import (
     user_must_be_admin,
 )
 from src.config import setup_logger
-from src.database import  get_db
-from src.service import AppResponseModel
+from src.database import get_db
+from src.service import AppResponseModel, failed_service_result
 from src.pagination import CommonQueryParams
-from src.service import  handle_result, success_service_result
+from src.service import handle_result, success_service_result
 from src.users import schemas
 from src.users.dependencies import (
     can_create_special_user,
@@ -71,7 +72,7 @@ async def request_password_change(
     return handle_result(success_service_result(success_message))  # type: ignore
 
 
-@router.put("/change-user-password", response_model=UserOut)
+@router.put("/change-user-password", response_model=AppResponseModel)
 async def change_user_password(
     data: ChangePasswordWithToken,
     user_service: UserService = Depends(initiate_anonymous_user_service),
@@ -79,8 +80,9 @@ async def change_user_password(
     result = user_service.change_password_with_token(data.token, data.new_password)
     if result.success:
         await mail_funcs.send_password_changed_mail(result.data.email)
+        return handle_result(success_service_result("Your password has been successfully changed."))  # type: ignore
 
-    return handle_result(result, expected_schema=UserOut)  # type: ignore
+    return handle_result(result)
 
 
 @router.post(

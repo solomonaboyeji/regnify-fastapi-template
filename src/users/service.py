@@ -3,7 +3,9 @@ from datetime import timedelta
 from typing import Any, Union
 from uuid import UUID
 
+
 from jose import jwt
+from jose.exceptions import ExpiredSignatureError
 from sqlalchemy.orm import Session
 from src.config import Settings, setup_logger
 from src.exceptions import BaseForbiddenException, GeneralException
@@ -33,7 +35,9 @@ class UserService(BaseService):
         if requesting_user is None:
             raise GeneralException("Requesting User was not provided.")
 
-    def update_user(self, id: UUID, user: schemas.UserUpdate) -> ServiceResult[Union[User, None]]:
+    def update_user(
+        self, id: UUID, user: schemas.UserUpdate
+    ) -> ServiceResult[Union[User, None]]:
         try:
             if user.is_active is not None and not self.requesting_user.is_super_admin:
                 return ServiceResult(
@@ -139,16 +143,41 @@ class UserService(BaseService):
                 self.app_settings.secret_key_for_tokens,
                 algorithm=self.app_settings.algorithm,
             )
+            self.update_user_last_password_token(result.data.id, encoded_jwt)
             return ServiceResult(data=encoded_jwt, success=True)
 
         return result
 
+    def update_user_last_password_token(
+        self, user_id: UUID, token: str
+    ) -> ServiceResult[schemas.UserOut]:
+        result = self.get_user_by_id(user_id)
+        if result.success:
+            user: User = result.data
+            user.last_password_token = token  # type: ignore
+            self.db.add(user)
+            self.db.commit()
+            self.db.refresh(user)
+            return success_service_result(user)
+
+        return failed_service_result(
+            UserNotFoundException(f"The user with ID {user_id} does not exist.")
+        )
+
     def change_password_with_token(
         self, token: str, new_password: str
     ) -> ServiceResult[Union[schemas.UserOut, None]]:
-        payload = decode_token(
-            token, self.app_settings.secret_key_for_tokens, self.app_settings.algorithm
-        )
+        try:
+            payload = decode_token(
+                token,
+                self.app_settings.secret_key_for_tokens,
+                self.app_settings.algorithm,
+            )
+        except ExpiredSignatureError:
+            return failed_service_result(
+                GeneralException("There is something wrong with the token.")
+            )
+
         user_id = payload["sub"]
         expires_in = payload["exp"]
         expires_in_date = datetime.datetime.utcfromtimestamp(expires_in)
@@ -156,19 +185,24 @@ class UserService(BaseService):
 
         if expires_in_date < todays_date:
             return failed_service_result(
-                BaseForbiddenException("The token has expired.")
+                GeneralException("The token has expired. Please generate a new one.")
             )
 
         get_user_result = self.get_user_by_id(user_id)
         if not get_user_result.success:
             return failed_service_result(
-                UserNotFoundException("There is something wrong with the token.")
+                GeneralException("There is something wrong with the token.")
             )
 
-        self.logger.info(new_password)
+        if get_user_result.data.last_password_token != token:
+            return failed_service_result(
+                GeneralException("The token has expired. Please generate a new one.")
+            )
+
         updated_user = self.users_crud.update_user_password(
             user_id, get_password_hash(new_password)
         )
+        self.update_user_last_password_token(user_id, "")
 
         return success_service_result(updated_user)
 

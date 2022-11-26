@@ -1,10 +1,9 @@
 """Pydantic Models"""
-from sqlalchemy.orm import Query
 
 from datetime import datetime
 from typing import Optional
 from uuid import UUID
-from pydantic import BaseModel, constr, validator
+from pydantic import BaseModel, constr, validator, Field
 
 from src.users.models import Profile
 

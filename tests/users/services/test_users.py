@@ -118,6 +118,17 @@ def test_update_user(test_db, app_settings, test_admin_user):
     assert result.data.is_super_admin
 
 
+def test_update_user_last_password_token(user_service: UserService):
+    service_result = user_service.get_user_by_email(prefix + "2@regnify.com")
+    assert isinstance(service_result, ServiceResult)
+    assert isinstance(service_result.data, User)
+    user_under_test: User = service_result.data
+
+    user_service.update_user_last_password_token(user_under_test.id, "sample-code")  # type: ignore
+    service_result = user_service.get_user_by_email(prefix + "2@regnify.com")
+    assert service_result.data.last_password_token == "sample-code"
+
+
 def test_change_password(user_service: UserService):
     service_result = user_service.get_user_by_email(prefix + "2@regnify.com")
     assert isinstance(service_result, ServiceResult)
@@ -195,6 +206,28 @@ def test_should_not_be_able_change_password_with_expired_token(
     result = user_service.change_password_with_token(result.data, "newPassword1")
     assert isinstance(result, ServiceResult)
     assert not result.success
+
+    # * Generate a new token and try changing password twice
+
+    result = user_service.create_request_password(
+        user_under_test.email,  # type: ignore
+    )
+    assert isinstance(result, ServiceResult)
+    assert isinstance(result.data, str)
+
+    # * first try would be successful
+    first_try_result = user_service.change_password_with_token(
+        result.data, "newPassword1"
+    )
+    assert isinstance(first_try_result, ServiceResult)
+    assert first_try_result.success
+
+    # * second try would not be successful
+    second_try_result = user_service.change_password_with_token(
+        result.data, "newPassword1"
+    )
+    assert isinstance(second_try_result, ServiceResult)
+    assert not second_try_result.success
 
 
 def test_should_not_be_able_to_change_with_invalid_user(

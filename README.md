@@ -1,7 +1,7 @@
 # A basic HTTP template to run different APIs
 
-# Features
-1. JWT Enabled
+# Development Email
+https://dev-mail.regnify.com
 
 # TODO
 - [x] Implement Relational Database with option to switch
@@ -9,7 +9,7 @@
     -  2nd Read: https://fastapi.tiangolo.com/advanced/async-sql-databases/
     -  3rd Read: Using Alembic
 - [-] Class Based Views for endpoints: https://fastapi-utils.davidmontague.xyz/user-guide/class-based-views/
-- [] Testings:
+- [x] Testings:
     -  Read number 14 https://github.com/zhanymkanov/fastapi-best-practices
     -  Testing a Database File: https://fastapi.tiangolo.com/advanced/testing-database/
     -  Async Testing: https://fastapi.tiangolo.com/advanced/async-tests/
