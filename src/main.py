@@ -10,7 +10,7 @@ from src.users import models
 from src.database import engine
 from src.users.router import router as user_router
 from src.config import setup_logger
-from src.service import get_settings
+from src.service import custom_openapi_with_scopes, get_settings
 
 models.Base.metadata.create_all(bind=engine)
 
@@ -20,6 +20,7 @@ app = FastAPI(
     title=get_settings().app_name,
     docs_url=get_settings().doc_url,
     redoc_url=get_settings().redoc_url,
+    openapi_url=get_settings().openapi_url,
 )
 app.add_middleware(
     CORSMiddleware,
@@ -36,6 +37,8 @@ app.include_router(auth_router)
 app.include_router(user_router)
 
 simplify_operation_ids(app)
+
+app.openapi_schema = custom_openapi_with_scopes(app)
 
 
 @app.get("/")

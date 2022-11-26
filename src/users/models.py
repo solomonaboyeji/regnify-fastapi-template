@@ -1,5 +1,6 @@
 """Contains the DB modules"""
 
+import enum
 import uuid
 from sqlalchemy import Boolean, Column, ForeignKey, Date, String, ARRAY, DateTime
 from sqlalchemy.orm import relationship
@@ -8,6 +9,13 @@ from sqlalchemy.dialects import postgresql
 from sqlalchemy.sql.functions import func
 
 from src.database import Base
+
+
+class UserScope(enum.Enum):
+    READ = "user:read"
+    WRITE = "user:write"
+    DELETE = "user:delete"
+    VIEW = "user:view"
 
 
 class User(Base):
@@ -46,6 +54,13 @@ class UserRoles(Base):
     role_id = Column(postgresql.UUID(as_uuid=True), ForeignKey("roles.id"))
 
 
+class ProfileScope(enum.Enum):
+    READ = "profile:read"
+    WRITE = "profile:write"
+    DELETE = "profile:delete"
+    VIEW = "profile:view"
+
+
 class Profile(Base):
     __tablename__ = "profile"
 
@@ -58,6 +73,13 @@ class Profile(Base):
     dob = Column(Date, nullable=True)
 
     user = relationship("User", back_populates="profile")
+
+
+class RoleScope(enum.Enum):
+    READ = "role:read"
+    WRITE = "role:write"
+    DELETE = "role:delete"
+    VIEW = "role:view"
 
 
 class Roles(Base):

@@ -1,11 +1,16 @@
 """Dependencies"""
 
+from typing import List
+from uuid import UUID, uuid4
 from sqlalchemy.orm import Session
 
 from jose import jwt, JWTError
 
-from fastapi import Header, HTTPException, status, Depends
-from src.auth.exceptions import INVALID_AUTH_CREDENTIALS_EXCEPTION
+from pydantic import ValidationError
+
+from fastapi import Header, HTTPException, status, Depends, Security
+from fastapi.security import SecurityScopes
+from src.auth.exceptions import invalid_auth_credentials_exception
 from src.auth.schemas import TokenData
 from src.config import Settings
 from src.database import get_db
@@ -25,12 +30,35 @@ def has_admin_token_in_header(admin_access_token: str = Header()):
         )
 
 
+def verify_scope_permissions(
+    token_data: TokenData, scopes: List[str], authenticate_value: str
+):
+    # * Allow the super admin to do everything!
+    if token_data.is_super_admin:
+        return
+
+    for scope in scopes:
+        if scope not in token_data.scopes:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Not enough permissions",
+                headers={"WWW-Authenticate": authenticate_value},
+            )
+
+
 def get_current_user(
+    security_scopes: SecurityScopes,
     token: str = Depends(oauth2_scheme),
     db: Session = Depends(get_db),
     app_settings: Settings = Depends(get_settings),
 ):
-    credentials_exception = INVALID_AUTH_CREDENTIALS_EXCEPTION
+
+    if security_scopes.scopes:
+        authenticate_value = f'Bearer scope="{security_scopes.scope_str}"'
+    else:
+        authenticate_value = "Bearer"
+
+    credentials_exception = invalid_auth_credentials_exception(authenticate_value)
 
     try:
         payload = jwt.decode(
@@ -38,23 +66,36 @@ def get_current_user(
             key=app_settings.secret_key,
             algorithms=[app_settings.algorithm],
         )
-        username: str = payload.get("sub")  # type: ignore
-        if username is None:
+        email: str = payload.get("sub", None)  # type: ignore
+        user_id: str = payload.get("id", None)  # type: ignore
+        is_super_admin: bool = payload.get("is_super_admin", None)  # type: ignore
+
+        if email is None or user_id is None or is_super_admin is None:
             raise credentials_exception
 
-        token_data = TokenData(username=username)
+        token_scopes = payload.get("scopes", [])
+        token_data = TokenData(
+            id=UUID(user_id),
+            is_super_admin=is_super_admin,
+            email=email,
+            scopes=token_scopes,
+        )
 
-    except JWTError:
+    except (JWTError, ValidationError):
         raise credentials_exception
 
-    user = get_user(db, username=token_data.username)
+    user = get_user(db, username=token_data.email)
     if user is None:
         raise credentials_exception
+
+    verify_scope_permissions(token_data, security_scopes.scopes, authenticate_value)
 
     return user
 
 
-def get_current_active_user(current_user: UserOut = Depends(get_current_user)):
+def get_current_active_user(
+    current_user: UserOut = Security(get_current_user, scopes=["me"])
+):
     if not current_user.is_active:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, detail="Inactive user"

@@ -28,7 +28,7 @@ def test_admin_user(
     user_crud = UserCRUD(db=test_db)
     user_created = user_crud.create_user(
         UserCreate(
-            email=test_super_admin_email,
+            email=test_super_admin_email,  # type: ignore
             first_name="Simple",
             last_name="User",
             password=test_password,
@@ -57,7 +57,7 @@ def test_non_admin_user(
     user_crud = UserCRUD(db=test_db)
     user_created = user_crud.create_user(
         UserCreate(
-            email=test_non_admin_user_email,
+            email=test_non_admin_user_email,  # type: ignore
             first_name="Simple",
             last_name="User",
             password=test_password,

@@ -22,7 +22,7 @@ prefix = "userTesting"
 def test_create_user(user_service: UserService, test_password):
     user: ServiceResult = user_service.create_user(
         UserCreate(
-            email=prefix + "1@regnify.com",
+            email=prefix + "1@regnify.com",  # type: ignore
             last_name="Simple",
             first_name="User",
             password=test_password,
@@ -39,7 +39,7 @@ def test_create_user_with_admin_signup_token(
     user_service: UserService, test_password: str, app_settings: Settings
 ):
     user_data = UserCreate(
-        email=prefix + "2@regnify.com",
+        email=prefix + "2@regnify.com",  # type: ignore
         last_name="Simple",
         first_name="User",
         password=test_password,
@@ -53,7 +53,7 @@ def test_create_user_with_admin_signup_token(
     assert result.data.is_active
 
     # * Test Create with a wrong token
-    user_data.email = "2a@regnify.com"
+    user_data.email = "2a@regnify.com"  # type: ignore
     result: ServiceResult = user_service.create_user(
         user_data, admin_signup_token="WRONG-TOKEN"
     )

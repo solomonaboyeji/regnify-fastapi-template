@@ -1,9 +1,8 @@
 """User's Router"""
 
-from ctypes import resize
 from uuid import UUID
 from pydantic import EmailStr
-from fastapi import APIRouter, Depends, Header, Path, Query
+from fastapi import APIRouter, Depends, Header, Path, Query, Security
 from src import mail as mail_funcs
 
 from src.auth.dependencies import (
@@ -23,6 +22,7 @@ from src.users.dependencies import (
     initiate_anonymous_user_service,
     initiate_user_service,
 )
+from src.users.models import UserScope
 from src.users.schemas import ChangePasswordWithToken, ManyUsersInDB, UserOut
 from src.users.service import UserService
 
@@ -104,13 +104,17 @@ def create_user_unauthenticated(
 )
 def create_user(
     user: schemas.UserCreate,
-    user_service: UserService = Depends(initiate_user_service),
+    user_service: UserService = Security(
+        initiate_user_service, scopes=[UserScope.WRITE.value]
+    ),
     admin_signup_token: str = Header(
         None,
         max_length=50,
         description="The correct admin token to admin only features",
     ),
 ):
+    """Allows an admin to create a user in the system. This endpoint does not send an email to this user."""
+
     result = user_service.create_user(user, admin_signup_token=admin_signup_token)  # type: ignore
     return handle_result(result, schemas.UserOut)  # type: ignore
 

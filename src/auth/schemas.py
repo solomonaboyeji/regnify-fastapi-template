@@ -1,3 +1,5 @@
+from typing import List
+from uuid import UUID
 from pydantic import BaseModel
 
 
@@ -10,4 +12,7 @@ class AccessToken(BaseModel):
 
 
 class TokenData(BaseModel):
-    username: str
+    id: UUID
+    email: str
+    is_super_admin: bool
+    scopes: List[str] = []

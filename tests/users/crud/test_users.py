@@ -47,9 +47,8 @@ def test_create_user(test_db):
     email_under_test = "3@regnify.com"
     users_crud: UserCRUD = UserCRUD(db=test_db)
     user: User = users_crud.create_user(
-        UserCreate(email=email_under_test, last_name="1", first_name="2", password="3")
+        UserCreate(email=email_under_test, last_name="1", first_name="2", password="3")  # type: ignore
     )
-    logger.info(user.email)
     assert user.email == email_under_test
 
 
@@ -59,7 +58,7 @@ def test_create_user_with_existing_email(user_crud: UserCRUD):
     with pytest.raises(GeneralException):
         user_crud.create_user(
             UserCreate(
-                email=email_under_test, last_name="1", first_name="2", password="3"
+                email=email_under_test, last_name="1", first_name="2", password="3"  # type: ignore
             )
         )
 

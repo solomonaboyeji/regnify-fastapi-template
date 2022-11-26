@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 from jose import jwt
 
 from fastapi.security import OAuth2PasswordBearer
-from src.auth.exceptions import INVALID_AUTH_CREDENTIALS_EXCEPTION
+from src.auth.exceptions import invalid_auth_credentials_exception
 from src.users import models
 from src.users.exceptions import UserNotFoundException
 
@@ -16,7 +16,9 @@ from src.users.schemas import UserInDB
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
+oauth2_scheme = OAuth2PasswordBearer(
+    tokenUrl="token", scopes={"me": "Read information about the current user."}
+)
 
 
 def fake_hash_password(password: str):
@@ -56,7 +58,7 @@ def authenticate_user(db: Session, username: str, password: str):
     user: UserInDB = get_user(db, username)
 
     if not verify_password(password, str(user.hashed_password)):
-        raise INVALID_AUTH_CREDENTIALS_EXCEPTION
+        raise invalid_auth_credentials_exception()
 
     return user
 

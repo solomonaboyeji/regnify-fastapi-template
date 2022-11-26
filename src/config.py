@@ -14,7 +14,10 @@ class ResponseErrorMessage(BaseModel):
 
 
 class Settings(BaseSettings):
+    openapi_url: str = os.getenv("OPENAPI_URL", "/openapi.json")
+
     app_name: str = os.getenv("APP_NAME", "REGNIFY HTTP API")
+    api_version: str = os.getenv("API_VERSION", "1.0")
 
     admin_email: str = os.getenv("ADMIN_EMAIL", "talkto@regnify.com")
     admin_first_name: str = os.getenv("ADMIN_FIRST_NAME", "Same")

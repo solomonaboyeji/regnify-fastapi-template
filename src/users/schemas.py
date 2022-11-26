@@ -3,13 +3,13 @@
 from datetime import datetime
 from typing import Optional
 from uuid import UUID
-from pydantic import BaseModel, constr, validator, Field
+from pydantic import BaseModel, constr, validator, EmailStr
 
 from src.users.models import Profile
 
 
 class UserBase(BaseModel):
-    email: str
+    email: EmailStr
 
     # Pre-processing validator that evaluates lazy relationships before any other validation
     # NOTE: If high throughput/performance is a concern, you can/should probably apply

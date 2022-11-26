@@ -55,7 +55,7 @@ def initiate_user_service(
 def anonymous_user():
     return UserOut(
         id=uuid4(),
-        email="anonymous@regnify.com",
+        email="anonymous@regnify.com",  # type: ignore
         is_active=False,
         is_super_admin=False,
         user_roles=[],

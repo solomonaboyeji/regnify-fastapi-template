@@ -35,7 +35,7 @@ def test_user(test_db):
         return users_crud.get_user_by_email(email_under_test)
 
     user: User = users_crud.create_user(
-        UserCreate(email=email_under_test, last_name="1", first_name="2", password="3")
+        UserCreate(email=email_under_test, last_name="1", first_name="2", password="3")  # type: ignore
     )
     assert user.email == email_under_test
     return user
@@ -50,7 +50,7 @@ def test_admin_user(test_db):
         return users_crud.get_user_by_email(email_under_test)
 
     user: User = users_crud.create_user(
-        UserCreate(email=email_under_test, last_name="1", first_name="2", password="3"),
+        UserCreate(email=email_under_test, last_name="1", first_name="2", password="3"),  # type: ignore
         is_super_admin=True,
         should_make_active=True,
     )

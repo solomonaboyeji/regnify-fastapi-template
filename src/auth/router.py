@@ -7,12 +7,13 @@ from fastapi.security.oauth2 import OAuth2PasswordRequestForm
 
 from src.auth.schemas import AccessToken
 
-from src.auth.dependencies import INVALID_AUTH_CREDENTIALS_EXCEPTION
+from src.auth.dependencies import invalid_auth_credentials_exception
 from src.config import Settings
 from src.database import get_db
 from src.service import get_settings
 from src.security import authenticate_user, create_access_token
 from src.users.exceptions import UserNotFoundException
+from src.users.models import UserScope
 
 router = APIRouter(tags=["Auth"])
 
@@ -32,15 +33,18 @@ def login(
     try:
         user = authenticate_user(db, form_data.username, form_data.password)
     except UserNotFoundException as raised_exception:
-        raise INVALID_AUTH_CREDENTIALS_EXCEPTION from raised_exception
+        raise invalid_auth_credentials_exception() from raised_exception
 
     access_token_expires = timedelta(minutes=app_settings.access_code_expiring_minutes)
+    user_scopes = ["me"]
     access_token = create_access_token(
         data={
+            "id": str(user.id),
             "sub": user.email,
             "is_active": user.is_active,
             "is_super_admin": user.is_super_admin,
             "roles": user.user_roles,
+            "scopes": user_scopes,
         },
         secret_key=app_settings.secret_key,
         algorithm=app_settings.algorithm,

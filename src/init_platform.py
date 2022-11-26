@@ -35,7 +35,7 @@ def create_admin_user():
 
     user_crud.create_user(
         UserCreate(
-            email=app_settings.admin_email,
+            email=app_settings.admin_email,  # type: ignore
             last_name=app_settings.admin_first_name,
             first_name=app_settings.admin_last_name,
             password=app_settings.admin_password,
