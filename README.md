@@ -1,7 +1,5 @@
 # A basic HTTP template to run different APIs
 
-# Development Email
-https://dev-mail.regnify.com
 
 # TODO
 - [x] Implement Relational Database with option to switch
