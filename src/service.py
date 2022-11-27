@@ -84,7 +84,7 @@ def handle_result(result: ServiceResult, expected_schema: BaseModel = None):  # 
         handle_bad_request_exception(result.exception)
 
 
-def custom_openapi_with_scopes(app: FastAPI):
+def custom_openapi_with_scopes(app: FastAPI, settings: Settings):
     if app.openapi_schema:
         return app.openapi_schema
 
@@ -95,45 +95,49 @@ def custom_openapi_with_scopes(app: FastAPI):
         routes=app.routes,
     )
 
-    paths_with_descriptions = []
-    for endpoint in openapi_schema["paths"]:
-        path = openapi_schema["paths"][endpoint]
-        for method in path:
-            method_data = path[method]
-            if "security" in method_data:
-                for oa2pb in method_data["security"]:
-                    for scope in oa2pb["OAuth2PasswordBearer"]:
-                        try:
-                            endpoint_method_value = openapi_schema["paths"][endpoint][
-                                method
-                            ]
+    if settings.display_scopes:
+        paths_with_descriptions = []
+        for endpoint in openapi_schema["paths"]:
+            path = openapi_schema["paths"][endpoint]
+            for method in path:
+                method_data = path[method]
+                if "security" in method_data:
+                    for oa2pb in method_data["security"]:
+                        for scope in oa2pb["OAuth2PasswordBearer"]:
+                            try:
+                                endpoint_method_value = openapi_schema["paths"][
+                                    endpoint
+                                ][method]
 
-                            if (
-                                "description"
-                                not in openapi_schema["paths"][endpoint][method]
-                            ):
+                                if (
+                                    "description"
+                                    not in openapi_schema["paths"][endpoint][method]
+                                ):
+                                    openapi_schema["paths"][endpoint][method][
+                                        "description"
+                                    ] = f"<strong>Scopes: </strong> {scope},"
+                                else:
+                                    if (
+                                        not endpoint_method_value
+                                        in paths_with_descriptions
+                                    ):
+                                        paths_with_descriptions.append(
+                                            openapi_schema["paths"][endpoint][method]
+                                        )
+                                        openapi_schema["paths"][endpoint][method][
+                                            "description"
+                                        ] += f"""
+                                        <br />
+                                        <br />
+                                        <strong>Scopes: </strong> {scope}, """
+                                    else:
+                                        openapi_schema["paths"][endpoint][method][
+                                            "description"
+                                        ] += (scope + ",  ")
+
+                            except KeyError:
                                 openapi_schema["paths"][endpoint][method][
                                     "description"
-                                ] = f"<strong>Scopes: </strong> {scope},"
-                            else:
-                                if not endpoint_method_value in paths_with_descriptions:
-                                    paths_with_descriptions.append(
-                                        openapi_schema["paths"][endpoint][method]
-                                    )
-                                    openapi_schema["paths"][endpoint][method][
-                                        "description"
-                                    ] += f"""
-                                    <br />
-                                    <br />
-                                    <strong>Scopes: </strong> {scope}, """
-                                else:
-                                    openapi_schema["paths"][endpoint][method][
-                                        "description"
-                                    ] += (scope + ",  ")
-
-                        except KeyError:
-                            openapi_schema["paths"][endpoint][method][
-                                "description"
-                            ] = f"<strong>Scopes: </strong> {scope},  "
+                                ] = f"<strong>Scopes: </strong> {scope},  "
 
     return openapi_schema

@@ -78,6 +78,8 @@ class Settings(BaseSettings):
     mail_ssl_tls: bool = os.getenv("MAIL_SSL_TLS", "False") == "True"  # type: ignore
     use_credentials: bool = os.getenv("USE_CREDENTIALS", "False") == "True"  # type: ignore
 
+    display_scopes: bool = os.getenv("DISPLAY_SCOPES_IN_DOCUMENTATION", "True") == "True"  # type: ignore
+
     def get_full_database_url(self):
         return f"postgresql://{self.db_user}:{self.db_password}@{self.db_host}:{self.db_port}/{self.db_name}"
 

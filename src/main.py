@@ -38,7 +38,7 @@ app.include_router(user_router)
 
 simplify_operation_ids(app)
 
-app.openapi_schema = custom_openapi_with_scopes(app)
+app.openapi_schema = custom_openapi_with_scopes(app, get_settings())
 
 
 @app.get("/")

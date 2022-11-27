@@ -61,6 +61,7 @@ services:
       - RESET_PASSWORD_UI_URL=http://localhost:8080/change-password
 
       - OPENAPI_URL=/openapi.json
+      - DISPLAY_SCOPES_IN_DOCUMENTATION=True
 
   
 
