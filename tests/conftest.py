@@ -25,6 +25,11 @@ def test_non_admin_user_email():
 
 
 @pytest.fixture()
+def test_user_without_any_roles_email():
+    return "noRoleUser@regnify.com"
+
+
+@pytest.fixture()
 def test_db():
     app_settings = Settings()
 

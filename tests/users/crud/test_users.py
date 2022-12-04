@@ -3,7 +3,7 @@ from datetime import timedelta
 from jose import jwt
 from src.exceptions import GeneralException
 from src.security import create_access_token, get_password_hash
-from src.users.crud import UserCRUD
+from src.users.crud.users import UserCRUD
 from src.users.models import Profile, User
 from src.users.schemas import UserCreate, UserOut, UserUpdate
 
@@ -79,12 +79,12 @@ def test_update_user(user_crud: UserCRUD):
 
     updated_user: User = user_crud.get_user(user.id)  # type: ignore
 
-    assert updated_user.email == email_under_test
-    assert isinstance(updated_user.profile, Profile)
-    assert updated_user.profile.last_name == "3User"
-    assert updated_user.profile.first_name == "User3"
-    assert not updated_user.is_active
-    assert not updated_user.is_super_admin
+    assert updated_user.email == email_under_test  # type: ignore
+    assert isinstance(updated_user.profile, Profile)  # type: ignore
+    assert updated_user.profile.last_name == "3User"  # type: ignore
+    assert updated_user.profile.first_name == "User3"  # type: ignore
+    assert not updated_user.is_active  # type: ignore
+    assert not updated_user.is_super_admin  # type: ignore
 
 
 def test_change_password(user_crud: UserCRUD):

@@ -1,11 +1,12 @@
 import pytest
 
-from src.users.crud import UserCRUD
+from src.users.crud.users import UserCRUD
 from src.users.models import User
 from src.users.schemas import UserCreate
 
 from src.config import Settings, setup_logger
-from src.users.service import UserService
+from src.users.services.roles import RolesService
+from src.users.services.users import UserService
 
 logger = setup_logger()
 
@@ -24,6 +25,20 @@ def user_service(test_db, test_user):
     TEST_CACHE["user_service"] = user_service
 
     return user_service
+
+
+@pytest.fixture()
+def role_service(test_db, test_user):
+    if "role_service" in TEST_CACHE:
+        return TEST_CACHE["role_service"]
+
+    role_service = RolesService(
+        db=test_db, requesting_user=test_user, app_settings=Settings()
+    )
+
+    TEST_CACHE["role_service"] = role_service
+
+    return role_service
 
 
 @pytest.fixture()

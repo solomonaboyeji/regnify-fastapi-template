@@ -1,7 +1,7 @@
 """Dependencies"""
 
+from uuid import UUID
 from typing import List
-from uuid import UUID, uuid4
 from sqlalchemy.orm import Session
 
 from jose import jwt, JWTError
@@ -17,6 +17,7 @@ from src.database import get_db
 
 from src.security import get_user, oauth2_scheme
 from src.service import get_settings
+from src.users.models import UserRoles
 from src.users.schemas import UserOut
 
 
@@ -31,7 +32,10 @@ def has_admin_token_in_header(admin_access_token: str = Header()):
 
 
 def verify_scope_permissions(
-    token_data: TokenData, scopes: List[str], authenticate_value: str
+    user_roles: list[UserRoles],
+    token_data: TokenData,
+    scopes: List[str],
+    authenticate_value: str,
 ):
     # * Allow the super admin to do everything!
     if token_data.is_super_admin:
@@ -40,8 +44,23 @@ def verify_scope_permissions(
     for scope in scopes:
         if scope not in token_data.scopes:
             raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Not enough permissions",
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Not enough permissions.",
+                headers={"WWW-Authenticate": authenticate_value},
+            )
+
+    # * Check the current scope of the user, can they do this?
+    db_permissions_scopes: list[str] = []
+    for user_role in user_roles:
+        for permission in user_role.role.permissions:
+            db_permissions_scopes.append(permission)
+
+    db_permissions_scopes.append("me")
+    for scope in scopes:
+        if scope not in db_permissions_scopes:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Not enough permissions. Please re-login.",
                 headers={"WWW-Authenticate": authenticate_value},
             )
 
@@ -88,7 +107,9 @@ def get_current_user(
     if user is None:
         raise credentials_exception
 
-    verify_scope_permissions(token_data, security_scopes.scopes, authenticate_value)
+    verify_scope_permissions(
+        user.user_roles, token_data, security_scopes.scopes, authenticate_value
+    )
 
     return user
 

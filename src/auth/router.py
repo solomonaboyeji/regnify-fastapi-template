@@ -13,7 +13,6 @@ from src.database import get_db
 from src.service import get_settings
 from src.security import authenticate_user, create_access_token
 from src.users.exceptions import UserNotFoundException
-from src.users.models import UserScope
 
 router = APIRouter(tags=["Auth"])
 
@@ -36,16 +35,26 @@ def login(
         raise invalid_auth_credentials_exception() from raised_exception
 
     access_token_expires = timedelta(minutes=app_settings.access_code_expiring_minutes)
+
     user_scopes = ["me"]
+    for role in user.user_roles:
+        for scope in role.role.permissions:
+            user_scopes.append(scope)
+
+    access_token_data = {
+        "id": str(user.id),
+        "sub": user.email,
+        "is_active": user.is_active,
+        "is_super_admin": user.is_super_admin,
+        "roles": [
+            {"title": role.role.title, "id": str(role.role.id)}
+            for role in user.user_roles
+        ],
+        "scopes": user_scopes,
+    }
+
     access_token = create_access_token(
-        data={
-            "id": str(user.id),
-            "sub": user.email,
-            "is_active": user.is_active,
-            "is_super_admin": user.is_super_admin,
-            "roles": user.user_roles,
-            "scopes": user_scopes,
-        },
+        data=access_token_data,
         secret_key=app_settings.secret_key,
         algorithm=app_settings.algorithm,
         expires_delta=access_token_expires,

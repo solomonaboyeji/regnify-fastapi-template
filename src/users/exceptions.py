@@ -5,6 +5,10 @@ class UserNotFoundException(BaseNotFoundException):
     pass
 
 
+class RoleNotFound(BaseNotFoundException):
+    pass
+
+
 class ProfileNotFoundException(BaseNotFoundException):
     pass
 

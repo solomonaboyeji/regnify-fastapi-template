@@ -12,6 +12,7 @@ from src.auth.dependencies import (
 )
 from src.config import setup_logger
 from src.database import get_db
+from src.scopes import UserScope
 from src.service import AppResponseModel, failed_service_result
 from src.pagination import CommonQueryParams
 from src.service import handle_result, success_service_result
@@ -22,9 +23,9 @@ from src.users.dependencies import (
     initiate_anonymous_user_service,
     initiate_user_service,
 )
-from src.users.models import UserScope
+
 from src.users.schemas import ChangePasswordWithToken, ManyUsersInDB, UserOut
-from src.users.service import UserService
+from src.users.services.users import UserService
 
 router = APIRouter(tags=["Users"], prefix="/users")
 
@@ -105,15 +106,15 @@ def create_user_unauthenticated(
 def create_user(
     user: schemas.UserCreate,
     user_service: UserService = Security(
-        initiate_user_service, scopes=[UserScope.WRITE.value]
+        initiate_user_service, scopes=[UserScope.CREATE.value]
     ),
     admin_signup_token: str = Header(
         None,
         max_length=50,
-        description="The correct admin token to admin only features",
+        description="The correct admin token to use admin only features",
     ),
 ):
-    """Allows an admin to create a user in the system. This endpoint does not send an email to this user."""
+    """Allows a user to create another user in the system. This endpoint does not send an email to this user."""
 
     result = user_service.create_user(user, admin_signup_token=admin_signup_token)  # type: ignore
     return handle_result(result, schemas.UserOut)  # type: ignore

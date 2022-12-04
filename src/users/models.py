@@ -1,21 +1,23 @@
 """Contains the DB modules"""
 
-import enum
 import uuid
-from sqlalchemy import Boolean, Column, ForeignKey, Date, String, ARRAY, DateTime
+from sqlalchemy import (
+    Boolean,
+    Column,
+    ForeignKey,
+    Date,
+    String,
+    ARRAY,
+    DateTime,
+    UniqueConstraint,
+)
 from sqlalchemy.orm import relationship
 from sqlalchemy.dialects import postgresql
 
 from sqlalchemy.sql.functions import func
 
 from src.database import Base
-
-
-class UserScope(enum.Enum):
-    READ = "user:read"
-    WRITE = "user:write"
-    DELETE = "user:delete"
-    VIEW = "user:view"
+from src.scopes import ProfileScope, RoleScope, UserScope
 
 
 class User(Base):
@@ -34,11 +36,20 @@ class User(Base):
 
     # user.items
     profile_id = Column(ForeignKey("profile.id"), index=True, nullable=True)
-    profile = relationship("Profile", back_populates="user")
+    profile = relationship("Profile", back_populates="user", lazy="joined")
 
     user_roles = relationship("UserRoles", back_populates="user")
 
     last_password_token = Column(String, default="")
+
+    @staticmethod
+    def full_scopes() -> list[str]:
+        return [
+            UserScope.CREATE.value,
+            UserScope.READ.value,
+            UserScope.UPDATE.value,
+            UserScope.DELETE.value,
+        ]
 
 
 class UserRoles(Base):
@@ -52,13 +63,13 @@ class UserRoles(Base):
     user = relationship("User", back_populates="user_roles")
 
     role_id = Column(postgresql.UUID(as_uuid=True), ForeignKey("roles.id"))
+    role = relationship("Roles", foreign_keys=[role_id], lazy="joined")
 
-
-class ProfileScope(enum.Enum):
-    READ = "profile:read"
-    WRITE = "profile:write"
-    DELETE = "profile:delete"
-    VIEW = "profile:view"
+    __table_args__ = (
+        UniqueConstraint(
+            user_id, role_id, name="user_id_and_role_id_unique_constraint"
+        ),
+    )
 
 
 class Profile(Base):
@@ -72,14 +83,16 @@ class Profile(Base):
     last_name = Column(String(100))
     dob = Column(Date, nullable=True)
 
-    user = relationship("User", back_populates="profile")
+    user = relationship("User", back_populates="profile", lazy="joined")
 
-
-class RoleScope(enum.Enum):
-    READ = "role:read"
-    WRITE = "role:write"
-    DELETE = "role:delete"
-    VIEW = "role:view"
+    @staticmethod
+    def full_scopes() -> list[str]:
+        return [
+            ProfileScope.CREATE.value,
+            ProfileScope.READ.value,
+            ProfileScope.UPDATE.value,
+            ProfileScope.DELETE.value,
+        ]
 
 
 class Roles(Base):
@@ -89,6 +102,8 @@ class Roles(Base):
     id = Column(
         postgresql.UUID(as_uuid=True), primary_key=True, index=True, default=uuid.uuid4
     )
+
+    title = Column(String, index=True, unique=True)
     permissions = Column(ARRAY(String), default=[])
     can_be_deleted = Column(Boolean, default=True)
 
@@ -99,4 +114,18 @@ class Roles(Base):
     created_by = Column(ForeignKey("users.id"), index=True)
 
     modified_by = Column(ForeignKey("users.id"), nullable=True)
-    # modified_by = Column(UUID(as_uuid=True), nullable=True)
+
+    # * constraints between title and created
+    # __table_args__ = (UniqueConstraint(title, created_by, name="title_created_by"),)
+
+    created_by_user = relationship("User", foreign_keys=[created_by], lazy="joined")
+    modified_by_user = relationship("User", foreign_keys=[modified_by], lazy="joined")
+
+    @staticmethod
+    def full_scopes() -> list[str]:
+        return [
+            RoleScope.CREATE.value,
+            RoleScope.READ.value,
+            RoleScope.UPDATE.value,
+            RoleScope.DELETE.value,
+        ]

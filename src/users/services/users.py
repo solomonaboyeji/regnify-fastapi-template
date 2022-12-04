@@ -18,7 +18,7 @@ from src.service import (
 )
 
 from src.users import schemas
-from src.users.crud import UserCRUD
+from src.users.crud.users import UserCRUD
 from src.users.exceptions import DuplicateUserException, UserNotFoundException
 from src.users.models import User
 

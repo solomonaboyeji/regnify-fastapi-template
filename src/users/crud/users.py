@@ -1,6 +1,6 @@
 from uuid import UUID
+from typing import Union
 from sqlalchemy.orm import Session
-from sqlalchemy import update
 from src.config import setup_logger
 from src.exceptions import GeneralException
 from src.security import get_password_hash
@@ -16,8 +16,8 @@ class UserCRUD:
         self.db = db
         self.logger = setup_logger()
 
-    def get_user(self, user_id: UUID):
-        return self.db.query(models.User).filter(models.User.id == user_id).first()
+    def get_user(self, user_id: UUID) -> Union[models.User, None]:
+        return self.db.query(models.User).filter(models.User.id == user_id).first()  # type: ignore
 
     def get_user_by_email(self, email: str) -> models.User:
         return self.db.query(models.User).filter(models.User.email == email).first()  # type: ignore

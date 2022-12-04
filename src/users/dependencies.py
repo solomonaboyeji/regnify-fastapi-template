@@ -11,7 +11,8 @@ from src.users.models import User
 from src.users.permissions import CAN_CREATE_SPECIAL_USER, CAN_READ_ALL_USERS
 
 from src.users.schemas import ProfileOut, UserOut
-from src.users.service import UserService
+from src.users.services.roles import RolesService
+from src.users.services.users import UserService
 
 # * Permissions and permissions
 
@@ -21,7 +22,7 @@ def can_create_special_user(current_user: UserOut = Depends(get_current_active_u
 
     permission_found: bool = False
     for role in current_user.user_roles:
-        if CAN_CREATE_SPECIAL_USER in role.permissions:
+        if CAN_CREATE_SPECIAL_USER in role.permissions:  # type: ignore
             permission_found = True
 
     if not permission_found:
@@ -35,7 +36,7 @@ def can_read_all_users(current_user: UserOut = Depends(get_current_active_user))
 
     permission_found: bool = False
     for role in current_user.user_roles:
-        if CAN_READ_ALL_USERS in role.permissions:
+        if CAN_READ_ALL_USERS in role.permissions:  # type: ignore
             permission_found = True
 
     if not permission_found:
@@ -50,6 +51,14 @@ def initiate_user_service(
     app_settings: Settings = Depends(get_settings),
 ):
     return UserService(requesting_user=current_user, db=db, app_settings=app_settings)
+
+
+def initiate_role_service(
+    current_user: UserOut = Depends(get_current_active_user),
+    db: Session = Depends(get_db),
+    app_settings: Settings = Depends(get_settings),
+):
+    return RolesService(requesting_user=current_user, db=db, app_settings=app_settings)
 
 
 def anonymous_user():

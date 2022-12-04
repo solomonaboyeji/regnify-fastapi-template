@@ -7,6 +7,9 @@ start-uvicorn:
 start-dev-postgres:
 	docker-compose -f ./docker/local/compose-files/docker-compose-postgres.yml up
 
+down-dev-postgres:
+	docker-compose -f ./docker/local/compose-files/docker-compose-postgres.yml down
+
 # ****************** END DIRECT DEVELOPMENT ****************** #
 
 # -- 
@@ -84,7 +87,7 @@ run-test-users:
 	make run-test-migrations
 
 	# * run the tests
-	docker compose -f docker/test/docker-compose-test.yml run -v ${PWD}:/usr/src/regnify-api  --rm regnify-api python -m pytest --cov=src/users tests/users
+	docker compose -f docker/test/docker-compose-test.yml run -v ${PWD}:/usr/src/regnify-api  --rm regnify-api python -m pytest --cov-report term-missing --cov=src/users tests/users 
 
 	make kill-test
 
@@ -94,7 +97,17 @@ run-test-users-crud:
 	make run-test-migrations
 	
 	# * run the tests
-	docker compose -f docker/test/docker-compose-test.yml run -v ${PWD}:/usr/src/regnify-api  --rm regnify-api python -m pytest --cov=src/users tests/users/crud
+	docker compose -f docker/test/docker-compose-test.yml run -v ${PWD}:/usr/src/regnify-api  --rm regnify-api python -m pytest --cov-report term-missing --cov=src/users tests/users/crud/test_users.py
+
+	make kill-test
+
+run-test-roles-crud:
+	make kill-test
+
+	make run-test-migrations
+	
+	# * run the tests
+	docker compose -f docker/test/docker-compose-test.yml run -v ${PWD}:/usr/src/regnify-api  --rm regnify-api python -m pytest --cov-report term-missing --cov=src/users tests/users/crud/test_roles.py
 
 	make kill-test
 
@@ -104,7 +117,17 @@ run-test-users-services:
 	make run-test-migrations
 	
 	# * run the tests
-	docker compose -f docker/test/docker-compose-test.yml run -v ${PWD}:/usr/src/regnify-api --rm regnify-api python -m pytest --cov=src/users tests/users/services/
+	docker compose -f docker/test/docker-compose-test.yml run -v ${PWD}:/usr/src/regnify-api --rm regnify-api python -m pytest --cov-report term-missing --cov=src/users/services tests/users/services/users/services/test_users.py
+
+	make kill-test
+
+run-test-roles-services:
+	make kill-test
+
+	make run-test-migrations
+	
+	# * run the tests
+	docker compose -f docker/test/docker-compose-test.yml run -v ${PWD}:/usr/src/regnify-api --rm regnify-api python -m pytest --cov-report term-missing --cov=src/users/services tests/users/services/test_roles.py
 
 	make kill-test
 
@@ -114,7 +137,17 @@ run-test-users-http:
 	make run-test-migrations
 	
 	# * run the tests
-	docker compose -f docker/test/docker-compose-test.yml run -v ${PWD}:/usr/src/regnify-api --rm regnify-api python -m pytest --cov=src/users tests/users/http/
+	docker compose -f docker/test/docker-compose-test.yml run -v ${PWD}:/usr/src/regnify-api --rm regnify-api python -m pytest --cov-report term-missing --cov=src/users tests/users/http/
+
+	make kill-test
+
+run-test-roles-http:
+	make kill-test
+
+	make run-test-migrations
+	
+	# * run the tests
+	docker compose -f docker/test/docker-compose-test.yml run -v ${PWD}:/usr/src/regnify-api --rm regnify-api python -m pytest --cov-report term-missing --cov=src/users tests/users/http/test_roles.py
 
 	make kill-test
 

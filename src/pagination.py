@@ -1,6 +1,7 @@
 """ """
 
 
+import enum
 from typing import Optional
 
 
@@ -16,3 +17,13 @@ class CommonQueryParams:
         self.query = query
         self.skip = skip
         self.limit = limit
+
+
+class OrderDirection(enum.Enum):
+    DESC: str = "DESC"  # type: ignore
+    ASC: str = "ASC"  # type: ignore
+
+
+class OrderBy(enum.Enum):
+    DATE_CREATED: str = "DATE_CREATED"  # type: ignore
+    DATE_MODIFIED: str = "DATE_MODIFIED"  # type: ignore

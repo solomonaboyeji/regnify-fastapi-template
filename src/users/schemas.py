@@ -1,14 +1,19 @@
 """Pydantic Models"""
 
 from datetime import datetime
-from typing import Optional
+from typing import Any, Optional
 from uuid import UUID
 from pydantic import BaseModel, constr, validator, EmailStr
 
-from src.users.models import Profile
+from src.users.models import Profile, Roles, User
 
 
-class UserBase(BaseModel):
+class AppBaseModel(BaseModel):
+    class Config:
+        orm_mode = True
+
+
+class UserBase(AppBaseModel):
     email: EmailStr
 
     # Pre-processing validator that evaluates lazy relationships before any other validation
@@ -21,9 +26,6 @@ class UserBase(BaseModel):
             return ProfileOut.from_orm(v)
         return v
 
-    class Config:
-        orm_mode = True
-
 
 class UserCreate(UserBase):
     is_super_admin: bool = False
@@ -31,34 +33,30 @@ class UserCreate(UserBase):
     first_name: constr(max_length=100)  # type: ignore
     password: str
 
+    access_begin: Optional[datetime]
+    access_end: Optional[datetime]
 
-class UserUpdate(BaseModel):
+
+class UserUpdate(AppBaseModel):
     is_active: Optional[bool] = None
     is_super_admin: Optional[bool] = None
     last_name: Optional[constr(max_length=100)]  # type: ignore
     first_name: Optional[constr(max_length=100)]  # type: ignore
 
 
-class ChangePassword(BaseModel):
+class ChangePassword(AppBaseModel):
     password: str
 
 
-class ChangePasswordWithToken(BaseModel):
+class ChangePasswordWithToken(AppBaseModel):
     token: str
     new_password: constr(max_length=255)  # type: ignore
 
 
-class MiniRoleOut(BaseModel):
-    permissions: list[str]
-
-
-class ProfileBase(BaseModel):
+class ProfileBase(AppBaseModel):
     last_name: constr(max_length=100)  # type: ignore
     first_name: constr(max_length=100)  # type: ignore
     avatar_url: str
-
-    class Config:
-        orm_mode = True
 
 
 class ProfileCreate(ProfileBase):
@@ -70,39 +68,69 @@ class ProfileOut(ProfileBase):
     # id: UUID
 
 
+class MiniRoleOut(AppBaseModel):
+    title: str
+    permissions: list[str]
+
+
+class MiniUserRoleOut(AppBaseModel):
+    role: MiniRoleOut
+
+
 class UserOut(UserBase):
     id: UUID
     is_active: bool
     is_super_admin: bool
-    user_roles: list[MiniRoleOut]
+    user_roles: list[MiniUserRoleOut]
     profile: ProfileOut
 
-    class Config:
-        orm_mode = True
 
-
-class ManyUsersInDB(BaseModel):
+class ManyUsersInDB(AppBaseModel):
     total: int = 0
     data: list[UserOut]
 
-    class Config:
-        orm_mode = True
 
-
-class RoleOut(BaseModel):
+class RoleOut(AppBaseModel):
+    id: UUID
+    title: str
     permissions: list[str]
     can_be_deleted: bool
-    created_by: UserOut
-    modified_by: Optional[UserOut]
+    created_by_user: UserOut
+    modified_by_user: Optional[UserOut]
     date_created: datetime
-    date_modified: datetime
+    date_modified: Optional[datetime]
+
+
+class UserRoleOut(AppBaseModel):
+    role: RoleOut
+
+
+class ManyUserRolesOut(AppBaseModel):
+    total: int
+    user_roles: list[UserRoleOut]
+
+
+class RoleCreate(AppBaseModel):
+    title: str
+    permissions: list[str]
+
+
+class ManyRolesOut(AppBaseModel):
+    # @validator("*", pre=True)
+    # def load_profile(cls, v):
+    #     if isinstance(v, Roles):
+    #         return RoleOut.from_orm(v)
+    #     return v
+
+    roles: list[RoleOut]
+    total: int
 
 
 class UserInDB(UserOut):
     hashed_password: str
 
 
-class ItemBase(BaseModel):
+class ItemBase(AppBaseModel):
     title: str
     description: Optional[str]
 
@@ -115,10 +143,7 @@ class Item(ItemBase):
     id: UUID
     owner_id: int
 
-    class Config:
-        orm_mode = True
 
-
-class ManyItems(BaseModel):
+class ManyItems(AppBaseModel):
     total: int = 0
     data: list[Item]

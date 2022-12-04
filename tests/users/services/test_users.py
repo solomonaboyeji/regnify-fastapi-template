@@ -10,7 +10,7 @@ from src.service import ServiceResult
 from src.users.exceptions import UserNotFoundException
 from src.users.models import User
 from src.users.schemas import UserCreate, UserUpdate
-from src.users.service import UserService
+from src.users.services.users import UserService
 
 from src.config import Settings, setup_logger
 
@@ -137,7 +137,7 @@ def test_change_password(user_service: UserService):
     service_result = user_service.update_user_password(user_under_test.id, "new-password")  # type: ignore
     assert isinstance(service_result, ServiceResult)
     updated_user: User = service_result.data
-    assert old_hashed_password != updated_user.hashed_password
+    assert old_hashed_password != updated_user.hashed_password  # type: ignore
 
     # * try updating a user that does not exist
     service_result = user_service.update_user_password(uuid4(), "new-password")  # type: ignore

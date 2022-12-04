@@ -4,7 +4,7 @@ from fastapi.testclient import TestClient
 from src.mail import fm
 from src.config import Settings, setup_logger
 from src.users.dependencies import anonymous_user
-from src.users.service import UserService
+from src.users.services.users import UserService
 
 logger = setup_logger()
 
