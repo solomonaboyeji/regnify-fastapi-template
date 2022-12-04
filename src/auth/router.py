@@ -1,6 +1,6 @@
 """User's Router"""
 
-from datetime import timedelta
+from datetime import datetime, timedelta
 from sqlalchemy.orm import Session
 from fastapi import APIRouter, Depends
 from fastapi.security.oauth2 import OAuth2PasswordRequestForm
@@ -13,6 +13,8 @@ from src.database import get_db
 from src.service import get_settings
 from src.security import authenticate_user, create_access_token
 from src.users.exceptions import UserNotFoundException
+from src.users.schemas import UserUpdate
+from src.users.services.users import UserService
 
 router = APIRouter(tags=["Auth"])
 
@@ -31,6 +33,15 @@ def login(
 
     try:
         user = authenticate_user(db, form_data.username, form_data.password)
+
+        user_service = UserService(
+            requesting_user=user, db=db, app_settings=app_settings
+        )
+        user_service.update_user(
+            user.id,  # type: ignore
+            UserUpdate(last_login=datetime.utcnow()),
+        )
+
     except UserNotFoundException as raised_exception:
         raise invalid_auth_credentials_exception() from raised_exception
 

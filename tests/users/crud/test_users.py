@@ -1,5 +1,5 @@
 import pytest
-from datetime import timedelta
+from datetime import datetime, timedelta
 from jose import jwt
 from src.exceptions import GeneralException
 from src.security import create_access_token, get_password_hash
@@ -44,12 +44,17 @@ def test_create_access_token(app_settings):
 
 
 def test_create_user(test_db):
+    access_begin = datetime.now()
+    access_end = datetime.now() - timedelta(days=1)
+
     email_under_test = "3@regnify.com"
     users_crud: UserCRUD = UserCRUD(db=test_db)
     user: User = users_crud.create_user(
-        UserCreate(email=email_under_test, last_name="1", first_name="2", password="3")  # type: ignore
+        UserCreate(email=email_under_test, last_name="1", first_name="2", password="3", access_begin=access_begin, access_end=access_end)  # type: ignore
     )
     assert user.email == email_under_test
+    assert user.access_end == access_end
+    assert user.access_begin == access_begin
 
 
 def test_create_user_with_existing_email(user_crud: UserCRUD):

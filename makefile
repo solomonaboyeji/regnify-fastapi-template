@@ -117,7 +117,7 @@ run-test-users-services:
 	make run-test-migrations
 	
 	# * run the tests
-	docker compose -f docker/test/docker-compose-test.yml run -v ${PWD}:/usr/src/regnify-api --rm regnify-api python -m pytest --cov-report term-missing --cov=src/users/services tests/users/services/users/services/test_users.py
+	docker compose -f docker/test/docker-compose-test.yml run -v ${PWD}:/usr/src/regnify-api --rm regnify-api python -m pytest --cov-report term-missing --cov=src/users/services tests/users/services/test_users.py
 
 	make kill-test
 
@@ -137,7 +137,7 @@ run-test-users-http:
 	make run-test-migrations
 	
 	# * run the tests
-	docker compose -f docker/test/docker-compose-test.yml run -v ${PWD}:/usr/src/regnify-api --rm regnify-api python -m pytest --cov-report term-missing --cov=src/users tests/users/http/
+	docker compose -f docker/test/docker-compose-test.yml run -v ${PWD}:/usr/src/regnify-api --rm regnify-api python -m pytest --cov-report term-missing --cov=src/users/routers tests/users/http/test_users.py
 
 	make kill-test
 

@@ -67,6 +67,7 @@ class Settings(BaseSettings):
     admin_signup_token: str = os.getenv("ADMIN_SIGNUP_TOKEN", "not-set")  # type: ignore
 
     reset_password_ui_url: str = os.getenv("RESET_PASSWORD_UI_URL", "not-set")  # type: ignore
+    login_ui_url: str = os.getenv("LOGIN_UI_URL", "not-set")  # type: ignore
 
     mail_username: str = os.getenv("MAIL_USERNAME", "not-set")  # type: ignore
     mail_password: str = os.getenv("MAIL_PASSWORD", "not-set")  # type: ignore

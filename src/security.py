@@ -8,6 +8,8 @@ from sqlalchemy.orm import Session
 from jose import jwt
 
 from fastapi.security import OAuth2PasswordBearer
+from fastapi.exceptions import HTTPException
+from fastapi import status
 from src.auth.exceptions import invalid_auth_credentials_exception
 from src.users import models
 from src.users.exceptions import UserNotFoundException
@@ -56,6 +58,12 @@ def get_user(db: Session, username: str) -> models.User:
 
 def authenticate_user(db: Session, username: str, password: str):
     user: UserInDB = get_user(db, username)
+
+    if user.access_end is not None and user.access_end < datetime.utcnow():
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="You can not longer have access to the system. Contact admin.",
+        )
 
     if not verify_password(password, str(user.hashed_password)):
         raise invalid_auth_credentials_exception()

@@ -2,6 +2,7 @@ import datetime
 from datetime import timedelta
 import time
 from typing import Any
+from urllib import response
 
 from uuid import uuid4
 from jose import jwt
@@ -44,6 +45,7 @@ def test_create_user_with_admin_signup_token(
         first_name="User",
         password=test_password,
     )
+
     result: ServiceResult = user_service.create_user(
         user_data, admin_signup_token=app_settings.admin_signup_token
     )
@@ -54,12 +56,51 @@ def test_create_user_with_admin_signup_token(
 
     # * Test Create with a wrong token
     user_data.email = "2a@regnify.com"  # type: ignore
+    user_data.access_begin = None
+
     result: ServiceResult = user_service.create_user(
         user_data, admin_signup_token="WRONG-TOKEN"
     )
     assert isinstance(result, ServiceResult)
     assert isinstance(result.data, User)
     assert not result.data.is_active
+
+
+def test_create_users_with_access_period(
+    user_service: UserService, test_password: str, app_settings: Settings
+):
+    access_end = datetime.datetime.now()
+    access_begin = datetime.datetime.now() - timedelta(days=1)
+
+    user_data = UserCreate(
+        email=prefix + "2.a@regnify.com",  # type: ignore
+        last_name="Simple",
+        first_name="User",
+        password=test_password,
+        access_begin=access_begin,
+        access_end=access_end,
+    )
+    result: ServiceResult = user_service.create_user(
+        user_data, admin_signup_token=app_settings.admin_signup_token
+    )
+    assert isinstance(result, ServiceResult)
+    assert result.data.access_end == access_end
+    assert result.data.access_begin == access_begin
+
+    # * create without access end or begin
+    user_data = UserCreate(
+        email=prefix + "2.a.1@regnify.com",  # type: ignore
+        last_name="Simple",
+        first_name="User",
+        password=test_password,
+    )
+    result: ServiceResult = user_service.create_user(
+        user_data, admin_signup_token=app_settings.admin_signup_token
+    )
+    assert isinstance(result, ServiceResult)
+    # * the access begin must start from the time the user was created
+    assert result.data.access_begin != None
+    assert result.data.access_end == None
 
 
 def test_get_user_by_email(user_service: UserService):

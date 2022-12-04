@@ -26,6 +26,12 @@ def get_settings():
     return Settings()
 
 
+def does_admin_token_match(token):
+    return (
+        token is not None and get_settings().admin_signup_token.lower() == token.lower()
+    )
+
+
 class AppResponseModel(BaseModel):
     detail: str
 

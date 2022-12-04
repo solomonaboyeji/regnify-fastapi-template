@@ -33,7 +33,6 @@ def test_create_role(role_service: RolesService):
         RoleCreate(title=CUSTOM_ROLE_NAME, permissions=[UserScope.DELETE.value])
     )
     assert isinstance(role_result, ServiceResult)
-    print(role_result.exception)
     assert role_result.success
     assert role_result.data.title == CUSTOM_ROLE_NAME.lower()
 

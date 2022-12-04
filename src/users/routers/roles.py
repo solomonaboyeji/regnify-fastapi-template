@@ -135,7 +135,7 @@ def unassign_role(
 def delete_role(
     role_id: UUID,
     role_service: RolesService = Security(
-        initiate_role_service, scopes=[RoleScope.CREATE.value]
+        initiate_role_service, scopes=[RoleScope.DELETE.value]
     ),
 ):
     """Deletes the role. This endpoint removes the roles from all users that has been previously assigned. The integer returned is the total number of all users the role has been removed from."""

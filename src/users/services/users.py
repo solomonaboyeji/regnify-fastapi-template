@@ -13,6 +13,7 @@ from src.security import decode_token, get_password_hash, get_user
 from src.service import (
     BaseService,
     ServiceResult,
+    does_admin_token_match,
     failed_service_result,
     success_service_result,
 )
@@ -20,7 +21,7 @@ from src.service import (
 from src.users import schemas
 from src.users.crud.users import UserCRUD
 from src.users.exceptions import DuplicateUserException, UserNotFoundException
-from src.users.models import User
+from src.users.models import Profile, Roles, User
 
 
 class UserService(BaseService):
@@ -34,6 +35,13 @@ class UserService(BaseService):
 
         if requesting_user is None:
             raise GeneralException("Requesting User was not provided.")
+
+    def get_system_scopes(self):
+        return [
+            {"title": "user", "scopes": User.full_scopes()},
+            {"title": "role", "scopes": Roles.full_scopes()},
+            {"title": "profile", "scopes": Profile.full_scopes()},
+        ]
 
     def update_user(
         self, id: UUID, user: schemas.UserUpdate
@@ -81,14 +89,26 @@ class UserService(BaseService):
             )
         try:
             should_make_active = False
-            if (
-                admin_signup_token is not None
-                and self.app_settings.admin_signup_token.lower()
-                == admin_signup_token.lower()
-            ):
+            if does_admin_token_match(admin_signup_token):
                 should_make_active = True
             else:
                 user.is_super_admin = False
+
+            if user.access_begin is None:
+                user.access_begin = datetime.datetime.utcnow()
+                user.access_end = None
+            else:
+                if user.access_end is None:
+                    return failed_service_result(
+                        exception=GeneralException("access_end must be provided")
+                    )
+
+                if user.access_begin > user.access_end:
+                    return failed_service_result(
+                        exception=GeneralException(
+                            "access_begin must be less than access_end."
+                        )
+                    )
 
             created_user = self.users_crud.create_user(
                 user, should_make_active, user.is_super_admin

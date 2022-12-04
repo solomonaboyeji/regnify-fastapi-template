@@ -17,9 +17,9 @@ services:
       - MAIL_FROM=server@regnify.com
       - MAIL_PORT=1025 # localhost, using mailhog
       - MAIL_FROM_NAME=REGNIFY
-      - MAIL_SERVER=regnify_mailhog
+      - MAIL_SERVER=mailhog
       - MAIL_TLS=False
-      - MAIL_START_TLS=True
+      - MAIL_START_TLS=False
       - MAIL_SSL_TLS=False
       - TEMPLATE_FOLDER='./email-templates'
       - USE_CREDENTIALS=False # for mailhog
@@ -54,6 +54,7 @@ services:
       - ADMIN_SIGNUP_TOKEN=please-set-me
 
       - RESET_PASSWORD_UI_URL=http://localhost:8080/change-password
+      - LOGIN_UI_URL=http://localhost:8080/login
 
   
 

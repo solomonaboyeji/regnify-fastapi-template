@@ -33,6 +33,8 @@ class User(Base):
 
     is_super_admin = Column(Boolean, default=False)
     last_login = Column(DateTime, nullable=True)
+    access_begin = Column(DateTime)
+    access_end = Column(DateTime, nullable=True)
 
     # user.items
     profile_id = Column(ForeignKey("profile.id"), index=True, nullable=True)

@@ -29,6 +29,42 @@ conf = ConnectionConfig(
 fm = FastMail(conf)
 
 
+async def send_new_account_info(
+    email: EmailStr, password: str, owner_name: str, subject: str = "New Account Info"
+):
+    email_body = {
+        "password": password,
+        "email": email,
+        "login_ui_url": app_settings.login_ui_url,
+        "owner_name": owner_name,
+        "app_name": get_settings().app_name,
+    }
+    message = MessageSchema(
+        subject=subject,
+        recipients=[email],
+        template_body=email_body,
+        subtype=MessageType.html,
+    )
+    await fm.send_message(message, template_name="new_account_info.html")
+
+
+async def send_how_to_change_password_email(
+    email: EmailStr, subject: str = "Change Password"
+):
+    email_body = {
+        "email": email,
+        "login_ui_url": app_settings.login_ui_url,
+        "app_name": get_settings().app_name,
+    }
+    message = MessageSchema(
+        subject=subject,
+        recipients=[email],
+        template_body=email_body,
+        subtype=MessageType.html,
+    )
+    await fm.send_message(message, template_name="how_to_change_password.html")
+
+
 async def send_change_password_request_mail(
     email: EmailStr, subject: str, reset_token: str
 ) -> None:
@@ -37,6 +73,7 @@ async def send_change_password_request_mail(
         "email": email,
         "reset_password_ui_url": app_settings.reset_password_ui_url,
         "expires_in": app_settings.password_request_minutes,
+        "app_name": get_settings().app_name,
     }
     message = MessageSchema(
         subject=subject,
@@ -48,7 +85,10 @@ async def send_change_password_request_mail(
 
 
 async def send_password_changed_mail(email: EmailStr) -> None:
-    email_body = {"email": email}
+    email_body = {
+        "email": email,
+        "app_name": get_settings().app_name,
+    }
     message = MessageSchema(
         subject="Password Successfully Changed",
         recipients=[email],

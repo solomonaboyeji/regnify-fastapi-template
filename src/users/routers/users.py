@@ -2,29 +2,31 @@
 
 from uuid import UUID
 from pydantic import EmailStr
-from fastapi import APIRouter, Depends, Header, Path, Query, Security
+from fastapi import APIRouter, Depends, Header, Path, Query, Security, Body
 from src import mail as mail_funcs
 
 from src.auth.dependencies import (
     get_current_active_user,
-    has_admin_token_in_header,
     user_must_be_admin,
 )
 from src.config import setup_logger
-from src.database import get_db
 from src.scopes import UserScope
-from src.service import AppResponseModel, failed_service_result
+from src.service import AppResponseModel, does_admin_token_match
 from src.pagination import CommonQueryParams
 from src.service import handle_result, success_service_result
 from src.users import schemas
 from src.users.dependencies import (
-    can_create_special_user,
     can_read_all_users,
     initiate_anonymous_user_service,
     initiate_user_service,
 )
 
-from src.users.schemas import ChangePasswordWithToken, ManyUsersInDB, UserOut
+from src.users.schemas import (
+    ChangePasswordWithToken,
+    ManySystemScopeOut,
+    ManyUsersInDB,
+    UserOut,
+)
 from src.users.services.users import UserService
 
 router = APIRouter(tags=["Users"], prefix="/users")
@@ -41,14 +43,14 @@ def read_user_me(current_user: UserOut = Depends(get_current_active_user)):
     return current_user
 
 
-@router.post(
-    "/create-special-user",
-    dependencies=[Depends(has_admin_token_in_header), Depends(can_create_special_user)],
+@router.get(
+    "/list-scopes",
+    response_model=ManySystemScopeOut,
 )
-def create_special_user(username: str):
-    """Creates Special User"""
-
-    return {"username": username}
+def list_scopes(
+    user_service: UserService = Security(initiate_user_service, scopes=["me"])
+):
+    return ManySystemScopeOut.parse_obj({"scopes": user_service.get_system_scopes()})
 
 
 @router.post("/request-password-change", response_model=AppResponseModel)
@@ -87,23 +89,10 @@ async def change_user_password(
 
 
 @router.post(
-    "/unsecure",
-    response_model=schemas.UserOut,
-)
-def create_user_unauthenticated(
-    user: schemas.UserCreate,
-    db=Depends(get_db),
-):
-    user_service = UserService(requesting_user=None, db=db)  # type: ignore
-    result = user_service.create_user(user)
-    return handle_result(result, schemas.UserOut)  # type: ignore
-
-
-@router.post(
     "/",
     response_model=schemas.UserOut,
 )
-def create_user(
+async def create_user(
     user: schemas.UserCreate,
     user_service: UserService = Security(
         initiate_user_service, scopes=[UserScope.CREATE.value]
@@ -114,10 +103,37 @@ def create_user(
         description="The correct admin token to use admin only features",
     ),
 ):
-    """Allows a user to create another user in the system. This endpoint does not send an email to this user."""
+    """Allows a user to create another user in the system. The user is made active if the correct admin-signup-token is provided, and no email will be sent to the user."""
 
     result = user_service.create_user(user, admin_signup_token=admin_signup_token)  # type: ignore
+
+    if result.success and not does_admin_token_match(admin_signup_token):
+        await mail_funcs.send_new_account_info(
+            user.email,
+            password=user.password,
+            owner_name=f"{user_service.requesting_user.profile.last_name} {user_service.requesting_user.profile.first_name}",
+        )
+
     return handle_result(result, schemas.UserOut)  # type: ignore
+
+
+@router.post(
+    "/resend-invite",
+    response_model=AppResponseModel,
+)
+async def resend_invite(
+    email: EmailStr,
+    user_service: UserService = Depends(initiate_anonymous_user_service),
+):
+    """Sends an email to the user on how to access their account again."""
+
+    result = user_service.get_user_by_email(email)
+    print(result.success)
+    print(result.exception)
+    if result.success:
+        await mail_funcs.send_how_to_change_password_email(email)  # type: ignore
+
+    return handle_result(success_service_result("Check your email."))  # type: ignore
 
 
 @router.put(

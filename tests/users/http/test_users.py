@@ -1,3 +1,4 @@
+from datetime import datetime, timedelta
 import pytest
 from fastapi.testclient import TestClient
 
@@ -5,6 +6,7 @@ from src.mail import fm
 from src.config import Settings, setup_logger
 from src.users.dependencies import anonymous_user
 from src.users.services.users import UserService
+from tests.users.http.conftest import login_test
 
 logger = setup_logger()
 
@@ -12,11 +14,17 @@ email_under_test = "1@regnify.com"
 prefix = "http-user"
 
 
-def test_only_super_admin_can_create_user(client: TestClient) -> None:
+def test_root_endpoint(client: TestClient) -> None:
     response = client.get("/")
     assert response.status_code == 200, response.json()
     assert "message" in response.json()
     assert response.json()["message"] == "Hello, Welcome to REGNIFY"
+
+
+def test_list_scopes(client: TestClient, test_admin_user_headers: dict):
+    response = client.get("/users/list-scopes", headers=test_admin_user_headers)
+    assert response.status_code == 200, response.json()
+    assert len(response.json()["scopes"]) > 0
 
 
 def test_can_create_user_with_admin_signup_token(
@@ -29,17 +37,30 @@ def test_can_create_user_with_admin_signup_token(
         "first_name": "",
     }
 
-    response = client.post(
-        "/users",
-        json=user_data,
-        headers={
-            **test_admin_user_headers,
-            "admin-signup-token": app_settings.admin_signup_token,
-        },
-    )
-    assert response.status_code == 200, response.json()
-    assert response.json()["is_active"] == True
-    assert response.json()["is_super_admin"] == False
+    fm.config.SUPPRESS_SEND = 1
+    with fm.record_messages() as outbox:
+        response = client.post(
+            "/users",
+            json=user_data,
+            headers={
+                **test_admin_user_headers,
+                "admin-signup-token": app_settings.admin_signup_token,
+            },
+        )
+        assert response.status_code == 200, response.json()
+        assert response.json()["is_active"] == True
+        assert response.json()["is_super_admin"] == False
+
+        # * test that the mail was not sent
+        assert len(outbox) == 0
+
+    # * the use can resend the invite
+    fm.config.SUPPRESS_SEND = 1
+    with fm.record_messages() as outbox:
+        response = client.post(f"/users/resend-invite?email={email_under_test}")
+        assert response.status_code == 200, response.json()
+        # * test that the mail was sent
+        assert len(outbox) == 1
 
     user_data = {
         **user_data,
@@ -58,19 +79,76 @@ def test_can_create_user_with_admin_signup_token(
     assert response.json()["is_active"] == True
     assert response.json()["is_super_admin"] == True
 
-    # * when admin signup token is invalid
-    user_data = {**user_data, "email": "1" + prefix + email_under_test}
+    # * when admin signup token is invalid, email must also be sent
+    fm.config.SUPPRESS_SEND = 1
+    with fm.record_messages() as outbox:
+        user_data = {**user_data, "email": "1" + prefix + email_under_test}
+        response = client.post(
+            "/users",
+            json=user_data,
+            headers={
+                **test_admin_user_headers,
+                "admin-signup-token": "THIS IS WRONG!",
+            },
+        )
+        assert response.status_code == 200, response.json()
+        assert response.json()["is_active"] == False
+        assert response.json()["is_super_admin"] == False
+
+        # * test the mail has been sent
+        assert len(outbox) == 1
+        assert outbox[0]["To"] == user_data["email"]
+
+    # * create access begin and access end time
+    access_end = datetime.utcnow() + timedelta(days=2)
+    access_begin = datetime.utcnow() - timedelta(days=2)
+    user_data = {
+        **user_data,
+        "email": "2" + prefix + email_under_test,
+        "access_begin": str(access_begin),
+        "access_end": str(access_end),
+    }
     response = client.post(
         "/users",
         json=user_data,
         headers={
             **test_admin_user_headers,
-            "admin-signup-token": "THIS IS WRONG!",
+            "admin-signup-token": app_settings.admin_signup_token,
         },
     )
     assert response.status_code == 200, response.json()
-    assert response.json()["is_active"] == False
-    assert response.json()["is_super_admin"] == False
+    assert response.json()["access_begin"] != None
+    assert response.json()["access_end"] != None
+
+    # * the user should not be able to login
+    token = login_test(client, "2" + prefix + email_under_test, "simplePass123")
+    assert token != None
+
+    # * create a user with limited access time
+    access_end = datetime.utcnow() - timedelta(days=1)
+    access_begin = datetime.utcnow() - timedelta(days=2)
+    user_data = {
+        **user_data,
+        "email": "3" + prefix + email_under_test,
+        "access_begin": str(access_begin),
+        "access_end": str(access_end),
+    }
+    response = client.post(
+        "/users",
+        json=user_data,
+        headers={
+            **test_admin_user_headers,
+            "admin-signup-token": app_settings.admin_signup_token,
+        },
+    )
+    assert response.status_code == 200, response.json()
+
+    # * the user should not be able to login
+    token = login_test(
+        client, "3" + prefix + email_under_test, "simplePass123", response_code=401
+    )
+
+    assert token == None
 
 
 def test_a_user_can_update_their_names(
@@ -80,6 +158,9 @@ def test_a_user_can_update_their_names(
     response = client.get("/users/token", headers=test_non_admin_user_headers)
     assert response.status_code == 200, response.content
     assert "id" in response.json()
+    assert "last_login" in response.json()
+    assert response.json()["last_login"] != None
+
     user_id_under_test = response.json()["id"]
 
     user_data = {

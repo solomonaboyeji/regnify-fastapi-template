@@ -9,15 +9,18 @@ from src.users.schemas import UserCreate
 TEST_CACHE = {}
 
 
-def login_test(client: TestClient, email: str, password: str):
+def login_test(client: TestClient, email: str, password: str, response_code: int = 200):
 
     response = client.post(
         "/token",
         data={"username": email, "password": password},
     )
-    assert response.status_code == 200, response.json()
-    bToken = response.json()["access_token"]
-    return {"Authorization": f"Bearer {bToken}"}
+    assert response.status_code == response_code, response.json()
+    if response.status_code == 200:
+        bToken = response.json()["access_token"]
+        return {"Authorization": f"Bearer {bToken}"}
+
+    return None
 
 
 @pytest.fixture()

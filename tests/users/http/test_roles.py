@@ -63,6 +63,7 @@ def test_user_with_role_scope_can_create_role(
     )
     assert response.status_code == 200, response.json()
     token = login_test(client, test_non_admin_user["email"], test_password)
+    assert token != None
 
     # * the user can now create a role
 
@@ -235,6 +236,7 @@ def test_unassign_role(
     )
     assert response.status_code == 200, response.json()
     token = login_test(client, test_non_admin_user["email"], test_password)
+    assert token != None
 
     # * the user can now create a role
 
@@ -277,6 +279,7 @@ def test_delete_role(
     )
     assert response.status_code == 200, response.json()
     token = login_test(client, test_user_without_any_roles_user["email"], test_password)
+    assert token != None
 
     # * delete the role
     response = client.delete(f"/roles/{role_id}", headers=test_admin_user_headers)

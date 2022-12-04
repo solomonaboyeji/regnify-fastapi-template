@@ -1,7 +1,5 @@
 import sys
 
-from src.users.crud.roles import RoleCRUD
-
 # ? Allows this script read the src folder.
 sys.path.append(".")
 
@@ -10,6 +8,7 @@ from src.config import Settings
 from src.exceptions import BaseConflictException, GeneralException
 from src.users.schemas import UserCreate
 from src.users.services.users import UserCRUD
+from src.users.crud.roles import RoleCRUD
 from src.config import setup_logger
 from src.users import models
 from src.database import engine
@@ -17,19 +16,16 @@ from src.database import engine
 
 logger = setup_logger()
 
-db = SessionLocal()
-models.Base.metadata.create_all(bind=engine)
-
 app_settings = Settings()
 
 if not app_settings.is_database_credentials_set():
     raise GeneralException("Database URL not configured")
 
-user_crud = UserCRUD(db)
-role_crud = RoleCRUD(db)
-
 
 def create_admin_user():
+    db = SessionLocal()
+    models.Base.metadata.create_all(bind=engine)
+    user_crud = UserCRUD(db)  # type: ignore
     logger.info("Creating Admin User")
     existing_admin_user = user_crud.get_user_by_email(app_settings.admin_email)
     if existing_admin_user:
@@ -52,9 +48,15 @@ def create_admin_user():
 
 
 def create_default_roles():
+    db = SessionLocal()
+    models.Base.metadata.create_all(bind=engine)
+
+    role_crud = RoleCRUD(db)  # type: ignore
+    user_crud = UserCRUD(db)  # type: ignore
+
     logger.info("Creating Default Roles")
     existing_admin_user = user_crud.get_user_by_email(app_settings.admin_email)
-    if existing_admin_user:
+    if not existing_admin_user:
         raise Exception(f"Admin {app_settings.admin_email} user does not exist")
 
     try:
@@ -63,7 +65,7 @@ def create_default_roles():
             permissions=models.User.full_scopes(),
             created_by=existing_admin_user,
         )
-    except BaseConflictException:
+    except Exception:
         pass
 
     try:
@@ -72,7 +74,7 @@ def create_default_roles():
             permissions=models.Roles.full_scopes(),
             created_by=existing_admin_user,
         )
-    except BaseConflictException:
+    except Exception:
         pass
 
 

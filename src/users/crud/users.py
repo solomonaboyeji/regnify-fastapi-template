@@ -85,6 +85,8 @@ class UserCRUD:
                 profile=db_profile,
                 is_active=should_make_active,
                 is_super_admin=is_super_admin,
+                access_begin=user.access_begin,
+                access_end=user.access_end,
             )  # type: ignore
             self.db.add(db_user)
             self.db.commit()
