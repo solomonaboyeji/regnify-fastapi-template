@@ -11,8 +11,10 @@ COPY requirements.txt /usr/src/regnify-api/requirements/prod.txt
 RUN python -m pip install --upgrade pip
 RUN python -m pip install -r /usr/src/regnify-api/requirements/prod.txt
 
-ADD .. /usr/src/regnify-api/
+ADD . /usr/src/regnify-api/
 WORKDIR /usr/src/regnify-api/
-EXPOSE 8100
+EXPOSE 8000
 
-CMD ["gunicorn", "-w 4", "-b 0.0.0.0:8100", "-t 30" , "-k", "uvicorn.workers.UvicornWorker", "src.main:app" ]
+RUN chmod +x entrypoint.sh
+
+CMD [ "./entrypoint.sh" ]
