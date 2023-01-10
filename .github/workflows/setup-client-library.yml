@@ -19,7 +19,7 @@ jobs:
       - name: Installing docker-compose step - 2
         run: sudo chmod +x /usr/local/bin/docker-compose;
 
-      - name: Start REGNIFY API
+      - name: Start HTTP API
         run: make run
 
       # ******* TYPESCRIPT
@@ -165,26 +165,26 @@ jobs:
         run: ls /tmp/python/src
 
       # PAT
-      - name: Clone Repo into `/tmp/regnify-python-client.git`
+      - name: Clone Repo into `/tmp/regnify-api-python-client.git`
         run: |
           cd /tmp
-          git clone https://${{ secrets.PAT }}@github.com/codelorhd/regnify-python-client-client.git
+          git clone https://${{ secrets.PAT }}@github.com/codelorhd/regnify-api-python-client.git
       
       - name: Update 
-        run: cp -r /tmp/python/src/* /tmp/regnify-python-client/
+        run: cp -r /tmp/python/src/* /tmp/regnify-api-python-client/
 
       - name: Debug folder
-        run: ls /tmp/regnify-python-client/
+        run: ls /tmp/regnify-api-python-client/
     
       - name: setup git user
         run: git config --global user.email 'solesty7@gmail.com' && git config --global user.name 'Solomon ABOYEJI'
 
       - name: Update origin repo if changed (python)
         run: |
-          cd /tmp/regnify-python-client && git add .
-          if [[ $(cd /tmp/regnify-python-client && git status --porcelain | wc -l) -gt 0 ]]
+          cd /tmp/regnify-api-python-client && git add .
+          if [[ $(cd /tmp/regnify-api-python-client && git status --porcelain | wc -l) -gt 0 ]]
           then
-          cd /tmp/regnify-python-client && git commit -m 'updated repo' && git push 
+          cd /tmp/regnify-api-python-client && git commit -m 'updated repo' && git push 
           else
           echo "not changed locally" 
           fi
