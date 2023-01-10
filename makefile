@@ -51,6 +51,10 @@ run:
 
 	docker compose -f docker/local/docker-compose.yml up  --remove-orphans  -d
 
+run-prod:
+	docker build -f Dockerfile.prod -t regnify-api .
+	docker run -p 8100:8000 regnify-api
+
 restart:
 	docker compose -f docker/local/docker-compose.yml down regnify-api
 	make run

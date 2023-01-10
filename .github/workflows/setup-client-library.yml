@@ -1,0 +1,191 @@
+name: Setup Server
+on: 
+  push:
+    branches: [ develop, feature/auto-gen-client-packages ]
+
+jobs:
+  setup_server:
+    runs-on: ubuntu-latest
+    steps:
+
+      - uses: actions/checkout@v2
+      - name: Setup
+        run: sudo apt-get update && sudo apt-get install -y make && make create-network --ignore-errors
+
+      # Had to do this to make the run-locally commands compatible (i.e docker-compose)
+      - name: Installing docker-compose step - 1
+        run: sudo curl -L "https://github.com/docker/compose/releases/download/1.27.4/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose;
+
+      - name: Installing docker-compose step - 2
+        run: sudo chmod +x /usr/local/bin/docker-compose;
+
+      - name: Start HTTP API
+        run: make run
+
+      # ******* TYPESCRIPT
+      - name: Generate Client API - Typescript Axios
+          #  You might need to specify the correct openapi.json url
+        run: |
+          mkdir /tmp/typescript-axios
+          docker run --network=regnify-network --rm -v /tmp/typescript-axios:/local openapitools/openapi-generator-cli generate -i http://regnify-api:8100/openapi.json -g typescript-axios -o /local/src
+
+      - name: Debug folder
+        run: ls /tmp/typescript-axios/src
+
+      # PAT
+      - name: Clone Repo into `/tmp/regnify-api-ts-client.git`
+        run: |
+          cd /tmp
+          git clone https://${{ secrets.PAT }}@github.com/codelorhd/regnify-api-ts-client.git
+      
+      - name: Update 
+        run: cp -r /tmp/typescript-axios/src/* /tmp/regnify-api-ts-client/
+
+      - name: Debug folder
+        run: ls /tmp/regnify-api-ts-client/
+    
+      - name: setup git user
+        run: git config --global user.email 'solesty7@gmail.com' && git config --global user.name 'Solomon ABOYEJI'
+
+      - name: Update origin repo if changed (typescript-axios)
+        run: |
+          cd /tmp/regnify-api-ts-client && git add .
+          if [[ $(cd /tmp/regnify-api-ts-client && git status --porcelain | wc -l) -gt 0 ]]
+          then
+          cd /tmp/regnify-api-ts-client && git commit -m 'updated repo' && git push 
+          else
+          echo "not changed locally" 
+          fi
+
+      # ******* DART DIO
+      - name: Generate Client API - Dart Dio
+        run: |
+          mkdir /tmp/dart-dio
+          docker run --network=regnify-network --rm -v /tmp/dart-dio:/local openapitools/openapi-generator-cli generate -i http://regnify-api:8100/openapi.json -g dart-dio -o /local/src \
+          -p pubAuthor="Solomon ABOYEJI" \
+          -p pubAuthorEmail="talkto@regnify.com" \
+          -p pubDescription="Auto-generated package for regnify platform" \
+          -p pubHomepage="https://regnify.com" \
+          -p pubLibrary="regnify.api" \
+          -p pubName="regnify_core" \
+          -p pubVersion="1.0.$GITHUB_RUN_NUMBER"
+
+      - name: Debug folder
+        run: ls /tmp/dart-dio/src
+
+      # PAT
+      - name: Clone Repo into `/tmp/regnify-api-dart-dio-client.git`
+        run: |
+          cd /tmp
+          git clone https://${{ secrets.PAT }}@github.com/codelorhd/regnify-api-dart-dio-client.git
+      
+      - name: Update 
+        run: cp -r /tmp/dart-dio/src/* /tmp/regnify-api-dart-dio-client/
+
+      - name: Debug folder
+        run: ls /tmp/regnify-api-dart-dio-client/
+        
+
+      - uses: subosito/flutter-action@v2
+      - name: Running builder
+        run: cd /tmp/regnify-api-dart-dio-client && flutter pub get && flutter pub run build_runner build --delete-conflicting-outputs && rm -r .dart_tool
+
+      
+      - name: Create .gitignore
+        run: | 
+          cd /tmp/regnify-api-dart-dio-client
+          echo ".dart_tool" > .gitignore
+          echo ".packages" >> .gitignore
+
+      - name: setup git user
+        run: git config --global user.email 'solesty7@gmail.com' && git config --global user.name 'Solomon ABOYEJI'
+
+      - name: Update origin repo if changed (dart-dio-axios)
+        run: |
+          cd /tmp/regnify-api-dart-dio-client && git add .
+          if [[ $(cd /tmp/regnify-api-dart-dio-client && git status --porcelain | wc -l) -gt 0 ]]
+          then
+          cd /tmp/regnify-api-dart-dio-client && git commit -m 'updated repo' && git push 
+          else
+          echo "not changed locally" 
+          fi
+
+      # ******* DART
+      - name: Generate Client API - Dart
+        run: |
+          mkdir /tmp/dart
+          docker run --network=regnify-network --rm -v /tmp/dart:/local openapitools/openapi-generator-cli generate -i http://regnify-api:8100/openapi.json -g dart -o /local/src \
+          -p pubAuthor="Solomon ABOYEJI" \
+          -p pubAuthorEmail="talkto@regnify.com" \
+          -p pubDescription="Auto-generated package for regnify platform" \
+          -p pubHomepage="https://regnify.com" \
+          -p pubLibrary="regnify.api" \
+          -p pubName="regnify_core" \
+          -p pubVersion="1.0.$GITHUB_RUN_NUMBER"
+
+      - name: Debug folder
+        run: ls /tmp/dart/src
+
+      # PAT
+      - name: Clone Repo into `/tmp/regnify-api-dart-client.git`
+        run: |
+          cd /tmp
+          git clone https://${{ secrets.PAT }}@github.com/codelorhd/regnify-api-dart-client.git
+      
+      - name: Update 
+        run: cp -r /tmp/dart/src/* /tmp/regnify-api-dart-client/
+
+      - name: Debug folder
+        run: ls /tmp/regnify-api-dart-client/
+    
+      - name: setup git user
+        run: git config --global user.email 'solesty7@gmail.com' && git config --global user.name 'Solomon ABOYEJI'
+
+      - name: Update origin repo if changed (dart)
+        run: |
+          cd /tmp/regnify-api-dart-client && git add .
+          if [[ $(cd /tmp/regnify-api-dart-client && git status --porcelain | wc -l) -gt 0 ]]
+          then
+          cd /tmp/regnify-api-dart-client && git commit -m 'updated repo' && git push 
+          else
+          echo "not changed locally" 
+          fi
+
+      # ******* PYTHON
+      - name: Generate Client API - python
+        run: |
+          mkdir /tmp/python
+          docker run --network=regnify-network --rm -v /tmp/python:/local openapitools/openapi-generator-cli generate -i http://regnify-api:8100/openapi.json -g python -o /local/src \
+          -p projectName="regnify-api" \
+          -p packageVersion="1.0.$GITHUB_RUN_NUMBER" \
+          -p packageName="regnify" \
+          -p packageUrl="https://regnify.com"
+
+      - name: Debug folder
+        run: ls /tmp/python/src
+
+      # PAT
+      - name: Clone Repo into `/tmp/regnify-api-python-client.git`
+        run: |
+          cd /tmp
+          git clone https://${{ secrets.PAT }}@github.com/codelorhd/regnify-api-python-client.git
+      
+      - name: Update 
+        run: cp -r /tmp/python/src/* /tmp/regnify-api-python-client/
+
+      - name: Debug folder
+        run: ls /tmp/regnify-api-python-client/
+    
+      - name: setup git user
+        run: git config --global user.email 'solesty7@gmail.com' && git config --global user.name 'Solomon ABOYEJI'
+
+      - name: Update origin repo if changed (python)
+        run: |
+          cd /tmp/regnify-api-python-client && git add .
+          if [[ $(cd /tmp/regnify-api-python-client && git status --porcelain | wc -l) -gt 0 ]]
+          then
+          cd /tmp/regnify-api-python-client && git commit -m 'updated repo' && git push 
+          else
+          echo "not changed locally" 
+          fi
+    
