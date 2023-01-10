@@ -5,6 +5,7 @@ services:
   regnify-api:
     container_name: regnify-api
     image: regnify-api
+    restart: unless-stopped
     ports:
       - 8100:8100
     build: 
