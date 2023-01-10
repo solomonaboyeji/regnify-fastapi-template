@@ -4,7 +4,7 @@
 - python3.9
 
 ## Auto Generation of Libraries
-[Link Here](../regnify-core/docs/client-libraries/README.md)
+[Link Here](https://github.com/codelorhd/regnify-fastapi-template/tree/main/docs/client-libraries)
 
 # 
 
