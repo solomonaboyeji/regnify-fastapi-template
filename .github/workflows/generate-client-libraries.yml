@@ -27,10 +27,7 @@ jobs:
           #  You might need to specify the correct openapi.json url
         run: |
           mkdir /tmp/typescript-axios
-          docker run --network=regnify-network --rm -v /tmp/typescript-axios:/local openapitools/openapi-generator-cli:v6.0.0  generate \
-          -i http://regnify-api:8000/openapi.json \
-          -g typescript-axios \
-          -o /local/src
+          docker run --network=regnify-network --rm -v /tmp/typescript:/local openapitools/openapi-generator-cli generate -i http://regnify-api:8100/openapi.json -g typescript-axios -o /local/src
 
       - name: Debug folder
         run: ls /tmp/typescript-axios/src
