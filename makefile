@@ -81,6 +81,15 @@ kill-test: kill-local
 run-test-migrations:
 	docker compose -f docker/test/docker-compose-test.yml run -v ${PWD}:/usr/src/regnify-api  --rm regnify-api alembic upgrade head
 
+run-tests:
+	make kill-test
+
+	make run-test-migrations
+
+	# * run the tests
+	docker compose -f docker/test/docker-compose-test.yml run -v ${PWD}:/usr/src/regnify-api  --rm regnify-api python -m pytest --cov-report term-missing --cov=src/
+
+	make kill-test
 
 # * ------ User Module ------ * #
 

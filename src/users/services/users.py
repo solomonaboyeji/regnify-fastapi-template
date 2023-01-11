@@ -9,7 +9,7 @@ from jose.exceptions import ExpiredSignatureError
 from sqlalchemy.orm import Session
 from src.config import Settings, setup_logger
 from src.exceptions import BaseForbiddenException, GeneralException
-from src.security import decode_token, get_password_hash, get_user
+from src.security import decode_token, get_password_hash
 from src.service import (
     BaseService,
     ServiceResult,
@@ -58,9 +58,9 @@ class UserService(BaseService):
 
             updated_user = self.users_crud.update_user(id, user)
         except UserNotFoundException as raised_exception:
-            return ServiceResult(data=None, success=False, exception=raised_exception)
+            return failed_service_result(raised_exception)
 
-        return ServiceResult(data=updated_user, success=True)
+        return success_service_result(updated_user)
 
     def update_user_password(
         self, id: UUID, new_password: str
@@ -71,7 +71,10 @@ class UserService(BaseService):
                 user_id=id, hashed_password=hashed_password
             )
         except UserNotFoundException as raised_exception:
-            return ServiceResult(data=None, success=False, exception=raised_exception)
+            return failed_service_result(raised_exception)
+        except Exception as raised_exception:
+            self.logger.exception(raised_exception)
+            return failed_service_result(raised_exception)
 
         return ServiceResult(data=updated_user, success=True)
 
@@ -114,75 +117,98 @@ class UserService(BaseService):
                 user, should_make_active, user.is_super_admin
             )
         except GeneralException as raised_exception:
-            return ServiceResult(data=None, success=False, exception=raised_exception)
+            return failed_service_result(raised_exception)
+        except Exception as raised_exception:
+            self.logger.exception(raised_exception)
+            return failed_service_result(raised_exception)
 
         return ServiceResult(data=created_user, success=True)
 
     def get_users(self, skip: int = 0, limit: int = 10) -> ServiceResult:
-        db_users = self.users_crud.get_users(skip=skip, limit=limit)
-        total_db_users = self.users_crud.get_total_users()
+        try:
+            db_users = self.users_crud.get_users(skip=skip, limit=limit)
+            total_db_users = self.users_crud.get_total_users()
 
-        users_data = {"total": total_db_users, "data": db_users}
-        return ServiceResult(data=users_data, success=True)
+            users_data = {"total": total_db_users, "data": db_users}
+            return ServiceResult(data=users_data, success=True)
+        except Exception as raised_exception:
+            self.logger.exception(raised_exception)
+            return failed_service_result(raised_exception)
 
     def get_user_by_id(self, id: UUID) -> ServiceResult[Union[User, None]]:
-        db_user: User = self.users_crud.get_user(id)  # type: ignore
-        if not db_user:
-            return ServiceResult(
-                data=None,
-                success=False,
-                exception=UserNotFoundException(f"User with ID {id} not found"),
-            )
+        try:
+            db_user: User = self.users_crud.get_user(id)  # type: ignore
+            if not db_user:
+                return ServiceResult(
+                    data=None,
+                    success=False,
+                    exception=UserNotFoundException(f"User with ID {id} not found"),
+                )
 
-        return ServiceResult(data=db_user, success=True)
+            return success_service_result(db_user)
+        except Exception as raised_exception:
+            self.logger.exception(raised_exception)
+            return failed_service_result(raised_exception)
 
     def get_user_by_email(self, email: str) -> ServiceResult[Union[User, None]]:
-        db_user: User = self.users_crud.get_user_by_email(email)  # type: ignore
-        if not db_user:
-            return ServiceResult(
-                data=None,
-                success=False,
-                exception=UserNotFoundException(f"User with email {email} not found"),
-            )
-
-        return ServiceResult(data=db_user, success=True)
+        try:
+            db_user: User = self.users_crud.get_user_by_email(email)  # type: ignore
+            if not db_user:
+                return ServiceResult(
+                    data=None,
+                    success=False,
+                    exception=UserNotFoundException(
+                        f"User with email {email} not found"
+                    ),
+                )
+            return success_service_result(db_user)
+        except Exception as raised_exception:
+            self.logger.exception(raised_exception)
+            return failed_service_result(raised_exception)
 
     def create_request_password(self, email: str) -> ServiceResult[Union[str, None]]:
-        result = self.get_user_by_email(email)
-        if result.success:
-            expires_in = datetime.datetime.utcnow() + timedelta(
-                minutes=self.app_settings.password_request_minutes
-            )
-            to_encode: dict[str, Any] = {
-                "sub": str(result.data.id),
-                "exp": expires_in,
-                "type": "PASSWORD_REQUEST",
-            }
-            encoded_jwt = jwt.encode(
-                to_encode,
-                self.app_settings.secret_key_for_tokens,
-                algorithm=self.app_settings.algorithm,
-            )
-            self.update_user_last_password_token(result.data.id, encoded_jwt)
-            return ServiceResult(data=encoded_jwt, success=True)
-
-        return result
+        try:
+            result = self.get_user_by_email(email)
+            if result.success:
+                expires_in = datetime.datetime.utcnow() + timedelta(
+                    minutes=self.app_settings.password_request_minutes
+                )
+                to_encode: dict[str, Any] = {
+                    "sub": str(result.data.id),
+                    "exp": expires_in,
+                    "type": "PASSWORD_REQUEST",
+                }
+                encoded_jwt = jwt.encode(
+                    to_encode,
+                    self.app_settings.secret_key_for_tokens,
+                    algorithm=self.app_settings.algorithm,
+                )
+                self.update_user_last_password_token(result.data.id, encoded_jwt)
+                return success_service_result(encoded_jwt)
+            return result
+        except Exception as raised_exception:
+            self.logger.exception(raised_exception)
+            return failed_service_result(raised_exception)
 
     def update_user_last_password_token(
         self, user_id: UUID, token: str
     ) -> ServiceResult[schemas.UserOut]:
-        result = self.get_user_by_id(user_id)
-        if result.success:
-            user: User = result.data
-            user.last_password_token = token  # type: ignore
-            self.db.add(user)
-            self.db.commit()
-            self.db.refresh(user)
-            return success_service_result(user)
+        try:
+            result = self.get_user_by_id(user_id)
+            if result.success:
+                user: User = result.data
+                user.last_password_token = token  # type: ignore
+                self.db.add(user)
+                self.db.commit()
+                self.db.refresh(user)
+                return success_service_result(user)
 
-        return failed_service_result(
-            UserNotFoundException(f"The user with ID {user_id} does not exist.")
-        )
+            return failed_service_result(
+                UserNotFoundException(f"The user with ID {user_id} does not exist.")
+            )
+        except Exception as raised_exception:
+            self.logger.exception(raised_exception)
+            return failed_service_result(raised_exception)
 
     def change_password_with_token(
         self, token: str, new_password: str
@@ -197,6 +223,9 @@ class UserService(BaseService):
             return failed_service_result(
                 GeneralException("There is something wrong with the token.")
             )
+        except Exception as raised_exception:
+            self.logger.exception(raised_exception)
+            return failed_service_result(raised_exception)
 
         user_id = payload["sub"]
         expires_in = payload["exp"]
@@ -219,12 +248,13 @@ class UserService(BaseService):
                 GeneralException("The token has expired. Please generate a new one.")
             )
 
-        updated_user = self.users_crud.update_user_password(
-            user_id, get_password_hash(new_password)
-        )
-        self.update_user_last_password_token(user_id, "")
+        try:
+            updated_user = self.users_crud.update_user_password(
+                user_id, get_password_hash(new_password)
+            )
+            self.update_user_last_password_token(user_id, "")
+        except Exception as raised_exception:
+            self.logger.exception(raised_exception)
+            return failed_service_result(raised_exception)
 
         return success_service_result(updated_user)
-
-    def create_user_item(self, item: schemas.ItemCreate, user_id: int) -> ServiceResult:
-        return ServiceResult(data=item, success=True)

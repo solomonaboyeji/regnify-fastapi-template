@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from fastapi import FastAPI
 from fastapi.openapi.utils import get_openapi
-from src.config import Settings
+from src.config import Settings, setup_logger
 from src.exceptions import (
     BaseConflictException,
     BaseForbiddenException,
@@ -19,6 +19,8 @@ from src.exceptions import (
 from src.users import schemas
 
 _T = TypeVar("_T")
+
+logger = setup_logger()
 
 
 @lru_cache()

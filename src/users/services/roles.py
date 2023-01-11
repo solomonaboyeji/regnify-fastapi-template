@@ -52,6 +52,9 @@ class RolesService(BaseService):
             return success_service_result(role_created)
         except BaseConflictException as raised_exception:
             return failed_service_result(raised_exception)
+        except Exception as raised_exception:
+            self.logger.exception(raised_exception)
+            return failed_service_result(raised_exception)
 
     def update_role(self, role_id: UUID, title: str = None, permissions: list[str] = None) -> ServiceResult[schemas.RoleOut]:  # type: ignore
 
@@ -67,6 +70,9 @@ class RolesService(BaseService):
             return success_service_result(updated_role)
         except BaseConflictException as raised_exception:
             return failed_service_result(raised_exception)
+        except Exception as raised_exception:
+            self.logger.exception(raised_exception)
+            return failed_service_result(raised_exception)
 
     def get_roles(
         self,
@@ -76,49 +82,63 @@ class RolesService(BaseService):
         order_by: OrderBy = OrderBy.DATE_CREATED,
         order_direction: OrderDirection = OrderDirection.ASC,
     ) -> ServiceResult[schemas.ManyRolesOut]:
-        roles = self.roles_crud.get_roles(
-            self.requesting_user.id,
-            start=start,
-            limit=limit,
-            title=title,
-            order_by=order_by,
-            order_direction=order_direction,
-        )
-        total_roles = self.roles_crud.total_roles(title=title)
-        data = schemas.ManyRolesOut.parse_obj({"total": total_roles, "roles": roles})
+        try:
+            roles = self.roles_crud.get_roles(
+                self.requesting_user.id,
+                start=start,
+                limit=limit,
+                title=title,
+                order_by=order_by,
+                order_direction=order_direction,
+            )
+            total_roles = self.roles_crud.total_roles(title=title)
+            data = schemas.ManyRolesOut.parse_obj(
+                {"total": total_roles, "roles": roles}
+            )
 
-        return success_service_result(data)
+            return success_service_result(data)
+        except Exception as raised_exception:
+            self.logger.exception(raised_exception)
+            return failed_service_result(raised_exception)
 
     def get_role(self, role_id) -> ServiceResult[schemas.RoleOut]:
-        role = self.roles_crud.get_role(role_id)
+        try:
+            role = self.roles_crud.get_role(role_id)
 
-        if not role:
-            return failed_service_result(BaseNotFoundException("Role does not exist."))
+            if not role:
+                return failed_service_result(
+                    BaseNotFoundException("Role does not exist.")
+                )
 
-        role_dict = {
-            **role.__dict__,
-            "created_by_user": role.created_by_user,
-            "modified_by_user": role.modified_by_user,
-        }
-        return success_service_result(schemas.RoleOut.parse_obj(role_dict))
+            role_dict = {
+                **role.__dict__,
+                "created_by_user": role.created_by_user,
+                "modified_by_user": role.modified_by_user,
+            }
+            return success_service_result(schemas.RoleOut.parse_obj(role_dict))
+        except Exception as raised_exception:
+            self.logger.exception(raised_exception)
+            return failed_service_result(raised_exception)
 
     def assign_role(
         self, role_id: UUID, user_id: UUID
     ) -> ServiceResult[schemas.UserOut]:
-        role = self.roles_crud.get_role(role_id)
-
-        if not role:
-            return failed_service_result(BaseNotFoundException("Role does not exist."))
-
-        user = self.users_crud.get_user(user_id)
-        if not user:
-            return failed_service_result(
-                BaseNotFoundException(
-                    "The user you want to assign the role to does not exist."
-                )
-            )
-
         try:
+            role = self.roles_crud.get_role(role_id)
+
+            if not role:
+                return failed_service_result(
+                    BaseNotFoundException("Role does not exist.")
+                )
+
+            user = self.users_crud.get_user(user_id)
+            if not user:
+                return failed_service_result(
+                    BaseNotFoundException(
+                        "The user you want to assign the role to does not exist."
+                    )
+                )
+
             self.roles_crud.assign_role(user, role)
             user: User = self.users_crud.get_user(user.id)  # type: ignore
             return success_service_result(
@@ -128,6 +148,9 @@ class RolesService(BaseService):
             )
         except BaseConflictException as raised_exception:
             return failed_service_result(exception=raised_exception)
+        except Exception as raised_exception:
+            self.logger.exception(raised_exception)
+            return failed_service_result(raised_exception)
 
     def unassign_role(
         self, role_id: UUID, user_id: UUID
@@ -137,6 +160,9 @@ class RolesService(BaseService):
             return success_service_result(self.users_crud.get_user(user_id))
         except BaseNotFoundException as raised_exception:
             return failed_service_result(raised_exception)
+        except Exception as raised_exception:
+            self.logger.exception(raised_exception)
+            return failed_service_result(raised_exception)
 
     def delete_role(self, role_id: UUID) -> ServiceResult[int]:
         try:
@@ -144,15 +170,23 @@ class RolesService(BaseService):
             return success_service_result(total_users_role_removed_from)
         except BaseNotFoundException as raised_exception:
             return failed_service_result(raised_exception)
+        except Exception as raised_exception:
+            self.logger.exception(raised_exception)
+            return failed_service_result(raised_exception)
 
     def get_users_assigned_to_role(
         self, role_id: UUID, skip: int = 0, limit: int = 10
     ) -> ServiceResult[schemas.ManyUserRolesOut]:
-        users_roles = self.roles_crud.get_user_assigned_to_roles(role_id, skip, limit)
-        total_user_roles = self.roles_crud.get_total_user_assigned_to_role(role_id)
+        try:
+            users_roles = self.roles_crud.get_user_assigned_to_roles(
+                role_id, skip, limit
+            )
+            total_user_roles = self.roles_crud.get_total_user_assigned_to_role(role_id)
 
-        user_roles = schemas.ManyUserRolesOut.parse_obj(
-            {"total": total_user_roles, "user_roles": users_roles}
-        )
-
-        return success_service_result(user_roles)
+            user_roles = schemas.ManyUserRolesOut.parse_obj(
+                {"total": total_user_roles, "user_roles": users_roles}
+            )
+            return success_service_result(user_roles)
+        except Exception as raised_exception:
+            self.logger.exception(raised_exception)
+            return failed_service_result(raised_exception)
