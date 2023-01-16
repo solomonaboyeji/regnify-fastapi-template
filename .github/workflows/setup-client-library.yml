@@ -1,7 +1,7 @@
 name: Setup Server
 on: 
   push:
-    branches: [ develop, feature/auto-gen-client-packages ]
+    branches: [ main ]
 
 jobs:
   setup_server:
