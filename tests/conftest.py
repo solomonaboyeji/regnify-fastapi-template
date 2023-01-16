@@ -1,7 +1,7 @@
 import pytest
 from src.config import Settings
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import Session
+from src.database import close_db_connections, get_engine, open_db_connections
 
 
 @pytest.fixture()
@@ -33,11 +33,11 @@ def test_user_without_any_roles_email():
 def test_db():
     app_settings = Settings()
 
-    engine = create_engine(app_settings.get_full_database_url())
-    SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-    db = SessionLocal()
+    open_db_connections()
+    db = Session(bind=get_engine())
 
     try:
         yield db
     finally:
         db.close()
+        close_db_connections()

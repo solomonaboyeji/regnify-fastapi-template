@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from fastapi import Depends, HTTPException
 from src.auth.dependencies import get_current_active_user
 from src.config import Settings
-from src.database import get_db
+from src.database import get_db_sess
 from src.service import get_settings
 from src.users.config import get_default_avatar_url
 from src.users.models import User
@@ -47,7 +47,7 @@ def can_read_all_users(current_user: UserOut = Depends(get_current_active_user))
 
 def initiate_user_service(
     current_user: UserOut = Depends(get_current_active_user),
-    db: Session = Depends(get_db),
+    db: Session = Depends(get_db_sess),
     app_settings: Settings = Depends(get_settings),
 ):
     return UserService(requesting_user=current_user, db=db, app_settings=app_settings)
@@ -55,7 +55,7 @@ def initiate_user_service(
 
 def initiate_role_service(
     current_user: UserOut = Depends(get_current_active_user),
-    db: Session = Depends(get_db),
+    db: Session = Depends(get_db_sess),
     app_settings: Settings = Depends(get_settings),
 ):
     return RolesService(requesting_user=current_user, db=db, app_settings=app_settings)
@@ -77,7 +77,7 @@ def anonymous_user():
 
 
 def initiate_anonymous_user_service(
-    db: Session = Depends(get_db),
+    db: Session = Depends(get_db_sess),
     app_settings: Settings = Depends(get_settings),
     anonymous_user=Depends(anonymous_user),
 ):

@@ -13,7 +13,7 @@ from fastapi.security import SecurityScopes
 from src.auth.exceptions import invalid_auth_credentials_exception
 from src.auth.schemas import TokenData
 from src.config import Settings
-from src.database import get_db
+from src.database import get_db_sess
 
 from src.security import get_user, oauth2_scheme
 from src.service import get_settings
@@ -68,7 +68,7 @@ def verify_scope_permissions(
 def get_current_user(
     security_scopes: SecurityScopes,
     token: str = Depends(oauth2_scheme),
-    db: Session = Depends(get_db),
+    db: Session = Depends(get_db_sess),
     app_settings: Settings = Depends(get_settings),
 ):
 

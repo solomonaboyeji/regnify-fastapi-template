@@ -9,7 +9,7 @@ from src.auth.schemas import AccessToken
 
 from src.auth.dependencies import invalid_auth_credentials_exception
 from src.config import Settings
-from src.database import get_db
+from src.database import get_db_sess
 from src.service import get_settings
 from src.security import authenticate_user, create_access_token
 from src.users.exceptions import UserNotFoundException
@@ -22,7 +22,7 @@ router = APIRouter(tags=["Auth"])
 @router.post("/token", response_model=AccessToken)
 def login(
     form_data: OAuth2PasswordRequestForm = Depends(),
-    db: Session = Depends(get_db),
+    db: Session = Depends(get_db_sess),
     app_settings: Settings = Depends(get_settings),
 ):
     """

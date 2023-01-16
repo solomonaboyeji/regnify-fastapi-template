@@ -81,17 +81,31 @@ class Settings(BaseSettings):
 
     display_scopes: bool = os.getenv("DISPLAY_SCOPES_IN_DOCUMENTATION", "True") == "True"  # type: ignore
 
+    cloud_sql_instance_name: str = os.getenv("CLOUD_SQL_INSTANCE_NAME", None)  # type: ignore
+    sql_database_provider: str = os.getenv("SQL_DATABASE_PROVIDER", None)  # type: ignore
+
     def get_full_database_url(self):
         return f"postgresql://{self.db_user}:{self.db_password}@{self.db_host}:{self.db_port}/{self.db_name}"
 
     def is_database_credentials_set(self):
-        if (
-            self.db_host is None
-            or self.db_password is None
-            or self.db_name is None
-            or self.db_user is None
-            or self.db_port is None
-        ):
+        if self.sql_database_provider != "CLOUD_SQL":
+            if (
+                self.db_host is None
+                or self.db_password is None
+                or self.db_name is None
+                or self.db_user is None
+                or self.db_port is None
+            ):
+                return False
+        elif self.sql_database_provider == "CLOUD_SQL":
+            if (
+                self.db_name is None
+                or self.db_user is None
+                or self.db_password is None
+                or self.cloud_sql_instance_name is None
+            ):
+                return False
+        else:
             return False
 
         return True

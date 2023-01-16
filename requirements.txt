@@ -18,3 +18,5 @@ fastapi[all]
 fastapi-mail==1.2.1
 pytest-asyncio
 gunicorn==20.1.0
+
+cloud-sql-python-connector[pg8000]==0.9.3
