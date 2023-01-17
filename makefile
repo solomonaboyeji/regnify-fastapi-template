@@ -39,10 +39,10 @@ kill-local:
 	docker compose -f docker/local/docker-compose.yml down
 
 run-local-migrations:
-	docker compose -f docker/local/docker-compose.yml run -v ${PWD}:/usr/src/regnify-api  --rm regnify-api  alembic upgrade head
+	docker compose -f docker/local/docker-compose.yml run -v ./:/usr/src/regnify-api  --rm regnify-api  alembic upgrade head
 
 make init-platform:
-	docker compose -f docker/local/docker-compose.yml run -v ${PWD}:/usr/src/regnify-api --rm regnify-api python ./src/init_platform.py
+	docker compose -f docker/local/docker-compose.yml run -v ./:/usr/src/regnify-api --rm regnify-api python ./src/init_platform.py
 
 run:
 	make run-local-migrations

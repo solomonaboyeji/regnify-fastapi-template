@@ -13,7 +13,8 @@ services:
       dockerfile: docker/Dockerfile
 
     volumes:
-      - ${PWD}:/usr/src/regnify-api
+      # - ./:/usr/src/regnify-api
+      - ./../../:/usr/src/regnify-api
     
     command: uvicorn src.main:app --reload --port 8100 --host 0.0.0.0
 
@@ -74,8 +75,8 @@ services:
     image: postgres:15.0-alpine
     container_name: regnify-postgres
     restart: always
-    volumes:
-      - ~/dockerPostgres/regnify:/var/lib/postgresql/data
+    # volumes:
+    #   - ~/dockerPostgres/regnify:/var/lib/postgresql/data
       
     ports:
       - 5433:5432
