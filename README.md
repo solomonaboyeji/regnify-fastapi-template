@@ -2,9 +2,63 @@
 
 # Requirements
 - python3.9
+- makefile
+    * Please install makefile if you are not using Linux.
 
 ## Auto Generation of Libraries
 [Link Here](https://github.com/codelorhd/regnify-fastapi-template/tree/main/docs/client-libraries)
+
+# 
+
+# Running API
+Open the makefile and understand the file before running the makefile commands.
+
+```sh
+# Run this first, Create Network for the containers
+make create-network
+```
+
+```sh
+# Build or rebuild the API image
+make build-local
+```
+
+```sh
+# Run at the root of the project
+make run
+```
+
+```sh
+# Follow docker compose logs
+make follow-logs
+```
+
+```sh
+# Kill the API
+make kill-local
+```
+
+### Migrations
+
+```sh
+# Run local alembic migrations
+make run-local-migrations
+```
+
+### Tests
+
+```sh
+# Run all the tests in the project
+make run-tests
+```
+
+
+```sh
+# Run all the tests in the users module
+make run-test-users
+```
+
+
 
 # 
 
