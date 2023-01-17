@@ -13,7 +13,6 @@ services:
       dockerfile: docker/Dockerfile
 
     volumes:
-      # - ./:/usr/src/regnify-api
       - ./../../:/usr/src/regnify-api
     
     command: uvicorn src.main:app --reload --port 8100 --host 0.0.0.0
@@ -67,9 +66,23 @@ services:
       - DISPLAY_SCOPES_IN_DOCUMENTATION=True
 
   
-
     depends_on:
       - postgres
+      - regnify-minio
+
+
+  regnify-minio:
+    container_name: regnify-minio
+    image: minio/minio
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - ./../../minio-storages:/data
+    environment:
+      MINIO_ROOT_USER: REGNIFY8281
+      MINIO_ROOT_PASSWORD: Strong#Pass#2023
+    command: server --console-address ":9001" /data
 
   postgres:
     image: postgres:15.0-alpine

@@ -31,8 +31,6 @@ def test_user_without_any_roles_email():
 
 @pytest.fixture()
 def test_db():
-    app_settings = Settings()
-
     open_db_connections()
     db = Session(bind=get_engine())
 
