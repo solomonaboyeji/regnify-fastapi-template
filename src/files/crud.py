@@ -8,6 +8,7 @@ from src.pagination import OrderBy, OrderDirection
 
 from src.models import Bucket, FileObject
 from src.users.crud.users import UserCRUD
+from src.users.models import User
 
 
 class FileCRUD:
@@ -44,7 +45,7 @@ class FileCRUD:
         db_file_object = FileObject(
             original_file_name=original_file_name.lower(),
             file_name=file_name,
-            owner_id=owner_id,
+            bucket_id=db_bucket.id,
         )
 
         self.db.add(db_file_object)
@@ -82,8 +83,24 @@ class FileCRUD:
             )
 
         if owner_id is not None:
-            search_filter = search_filter.filter(FileObject.bucket.owner_id == owner_id)
+            search_filter = search_filter.join(Bucket).filter(
+                Bucket.owner_id == owner_id
+            )
 
         search_filter = search_filter.offset(skip).limit(limit)
 
         return search_filter.all()
+
+    def remove_file(self, file_id: UUID) -> int:
+        return (
+            self.db.query(FileObject)
+            .filter(FileObject.id == file_id)
+            .delete(synchronize_session=False)
+        )
+
+    def remove_files(self, file_ids: List[UUID]) -> int:
+        return (
+            self.db.query(FileObject)
+            .filter(FileObject.id.in_(file_ids))
+            .delete(synchronize_session=False)
+        )
