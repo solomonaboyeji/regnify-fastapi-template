@@ -2,8 +2,13 @@
 
 # Requirements
 - python3.9
+- Docker
 - makefile
     * Please install makefile if you are not using Linux.
+- MinIO: High Performance Object Storage (already dockerized)
+    * [How to install](https://hub.docker.com/r/minio/minio)
+- Better Comments Visual Studio Plugin
+- Black Python Formatter
 
 ## Auto Generation of Libraries
 [Link Here](https://github.com/codelorhd/regnify-fastapi-template/tree/main/docs/client-libraries)

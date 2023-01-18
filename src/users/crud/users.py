@@ -118,3 +118,22 @@ class UserCRUD:
         self.db.commit()
         self.db.refresh(db_profile)
         return db_profile
+
+    def update_user_profile_photo(
+        self, user_id: UUID, file_object_id: UUID
+    ) -> models.Profile:
+        db_profile = (
+            self.db.query(models.Profile)
+            .filter(models.Profile.user.id == user_id)
+            .first()
+        )
+        if db_profile is None:
+            raise GeneralException("The profile does not exist.")
+
+        setattr(db_profile, "photo_file_id", file_object_id)
+
+        self.db.add(db_profile)
+        self.db.commit()
+        self.db.refresh(db_profile)
+
+        return db_profile

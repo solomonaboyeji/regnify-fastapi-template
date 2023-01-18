@@ -100,3 +100,11 @@ def test_change_password(user_crud: UserCRUD):
     hashed_password = get_password_hash("new-password")
     new_user = user_crud.update_user_password(old_user.id, hashed_password)  # type: ignore
     assert new_user.hashed_password != old_hashed_password
+
+
+def test_update_user_photo(user_crud: UserCRUD):
+    email_under_test = "3@regnify.com"
+    old_user = user_crud.get_user_by_email(email_under_test)
+    assert old_user != None
+
+    assert 1 == 2
