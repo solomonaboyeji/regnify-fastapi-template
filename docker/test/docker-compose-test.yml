@@ -9,6 +9,9 @@ services:
       context: ../../
       dockerfile: docker/Dockerfile
     
+    volumes:
+      - ./../../:/usr/src/regnify-api
+
     command: uvicorn src.main:app --reload --port 8100
 
     environment:
