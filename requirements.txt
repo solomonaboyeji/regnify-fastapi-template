@@ -22,3 +22,4 @@ gunicorn==20.1.0
 cloud-sql-python-connector[pg8000]==0.9.3
 filetype==1.2.0
 minio==7.1.13
+hypercorn[uvloop]==0.14.3

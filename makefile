@@ -1,10 +1,11 @@
 
 # ****************** DIRECT DEVELOPMENT ****************** #
 
-start-uvicorn:
-	uvicorn src.main:app --reload --port 8100
+start-hypercorn:
+	hypercorn src.main:app --reload --bind 0.0.0.0:8100
 
 start-dev-postgres:
+	make down-dev-postgres
 	docker-compose -f ./docker/local/compose-files/docker-compose-postgres.yml up
 
 down-dev-postgres:

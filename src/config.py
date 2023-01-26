@@ -84,6 +84,17 @@ class Settings(BaseSettings):
     cloud_sql_instance_name: str = os.getenv("CLOUD_SQL_INSTANCE_NAME", None)  # type: ignore
     sql_database_provider: str = os.getenv("SQL_DATABASE_PROVIDER", None)  # type: ignore
 
+    minio_host: str = os.getenv("MINIO_HOST", None)  # type: ignore
+    minio_access_key: str = os.getenv("MINIO_ACCESS_KEY", None)  # type: ignore
+    minio_secret_key: str = os.getenv("MINIO_SECRET_KEY", None)  # type: ignore
+    secure_minio: bool = os.getenv("SECURE_MINIO", "False") == "True"  # type: ignore
+
+    backend_storage_option: str = os.getenv("BACKEND_STORAGE_OPTION", "MINIO_STORAGE")  # type: ignore
+
+    upload_file_bytes_per_stream: int = int(
+        os.getenv("UPLOAD_FILE_BYTES_PER_STREAM", 1024 * 1024)  # 1mb
+    )
+
     def get_full_database_url(self):
         return f"postgresql://{self.db_user}:{self.db_password}@{self.db_host}:{self.db_port}/{self.db_name}"
 

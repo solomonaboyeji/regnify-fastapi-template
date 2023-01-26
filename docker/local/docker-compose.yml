@@ -15,7 +15,7 @@ services:
     volumes:
       - ./../../:/usr/src/regnify-api
     
-    command: uvicorn src.main:app --reload --port 8100 --host 0.0.0.0
+    command: hypercorn src.main:app --reload --bind 0.0.0.0:8100 --access-log - --error-log - --access-logformat '%(h)s %(l)s %(l)s %(t)s "%(r)s" %(s)s %(b)s '
 
     environment:
       - MAIL_USERNAME=mailhog-username
@@ -65,6 +65,13 @@ services:
       - OPENAPI_URL=/openapi.json
       - DISPLAY_SCOPES_IN_DOCUMENTATION=True
 
+      - MINIO_HOST=regnify-minio
+      - MINIO_ACCESS_KEY=Q3AM3UQ867SPQQA43P2F # for play.min.io
+      - MINIO_SECRET_KEY=zuf+tfteSlswRu7BJ86wekitnifILbZam1KYY3TG # for play.min.io
+      - SECURE_MINIO=False
+      
+      - BACKEND_STORAGE_OPTION=MINIO_STORAGE # MINIO_STORAGE or GOOGLE_STORAGE
+
   
     depends_on:
       - postgres
@@ -80,8 +87,8 @@ services:
     volumes:
       - ./../../minio-storages:/data
     environment:
-      MINIO_ROOT_USER: REGNIFY8281
-      MINIO_ROOT_PASSWORD: Strong#Pass#2023
+      MINIO_ROOT_USER: Q3AM3UQ867SPQQA43P2F
+      MINIO_ROOT_PASSWORD: zuf+tfteSlswRu7BJ86wekitnifILbZam1KYY3TG
     command: server --console-address ":9001" /data
 
   postgres:

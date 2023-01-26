@@ -3,12 +3,10 @@ from typing import List, Union
 from uuid import UUID
 from sqlalchemy.orm import Session
 from src.config import setup_logger
-from src.files.utils import make_custom_id
-from src.pagination import OrderBy, OrderDirection
+from src.pagination import OrderDirection
 
 from src.models import Bucket, FileObject
 from src.users.crud.users import UserCRUD
-from src.users.models import User
 
 
 class FileCRUD:
@@ -16,6 +14,9 @@ class FileCRUD:
         self.db = db
         self.logger = setup_logger()
         self.user_crud = UserCRUD(db)
+
+    def get_bucket(self, owner_id: UUID) -> Union[Bucket, None]:
+        return self.db.query(Bucket).filter(Bucket.owner_id == owner_id).first()
 
     def create_bucket(self, owner_id: UUID) -> Bucket:
         name: str = str(owner_id).replace("_", "")
@@ -35,21 +36,19 @@ class FileCRUD:
         total_bytes: int = 0,
     ) -> FileObject:
 
-        db_bucket = self.db.query(Bucket).filter(owner_id == owner_id).first()
+        db_bucket = self.get_bucket(owner_id)
         if not db_bucket:
             self.logger.info(f"Creating bucket for user {owner_id}")
             db_bucket = self.create_bucket(owner_id)
-
-        db_bucket.total_bytes = db_bucket.total_bytes + total_bytes  # type: ignore
 
         db_file_object = FileObject(
             original_file_name=original_file_name.lower(),
             file_name=file_name,
             bucket_id=db_bucket.id,
+            total_bytes=total_bytes,
         )
 
         self.db.add(db_file_object)
-        self.db.add(db_bucket)
         self.db.commit()
         self.db.refresh(db_file_object)
 

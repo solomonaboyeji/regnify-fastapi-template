@@ -17,8 +17,6 @@ class Bucket(Base):
     )
     name = Column(String(63))
 
-    total_bytes = Column(Integer, default=0)
-
     owner_id = Column(postgresql.UUID(as_uuid=True), ForeignKey("users.id"))
 
     date_created = Column(DateTime(timezone=True), server_default=func.now())
@@ -33,6 +31,10 @@ class FileObject(Base):
 
     file_name = Column(String(255))
     original_file_name = Column(String(255))
+
+    backend_storage = Column(String(255), default="NOT_SPECIFIED")
+
+    total_bytes = Column(Integer, default=0)
 
     bucket_id = Column(postgresql.UUID(as_uuid=True), ForeignKey("bucket.id"))
     bucket = relationship(Bucket, foreign_keys=[bucket_id], lazy="joined")

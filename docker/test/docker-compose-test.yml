@@ -9,7 +9,7 @@ services:
       context: ../../
       dockerfile: docker/Dockerfile
     
-    command: uvicorn src.main:app --reload --port 8100
+    command: hypercorn src.main:app --reload --bind 0.0.0.0:8100
 
     environment:
       - MAIL_USERNAME=emailusername

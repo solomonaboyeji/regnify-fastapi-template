@@ -15,4 +15,4 @@ ADD .. /usr/src/regnify-api/
 WORKDIR /usr/src/regnify-api/
 EXPOSE 8100
 
-CMD ["gunicorn", "-w 4", "-b 0.0.0.0:8100", "-t 30" , "-k", "uvicorn.workers.UvicornWorker", "src.main:app" ]
+CMD ["hypercorn", "src.main:app", "--workers", "1", "--bind",  "0.0.0.0:8100" ]
