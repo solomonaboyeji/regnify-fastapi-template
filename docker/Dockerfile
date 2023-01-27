@@ -15,4 +15,4 @@ ADD .. /usr/src/regnify-api/
 WORKDIR /usr/src/regnify-api/
 EXPOSE 8100
 
-CMD ["hypercorn", "src.main:app", "--workers", "1", "--bind",  "0.0.0.0:8100" ]
+CMD [ "hypercorn", "--config",  "file:hypercorn/hypercorn_conf.py" , "src.main:app" ]

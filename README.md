@@ -1,5 +1,12 @@
 # A basic HTTP template to run different APIs
 
+Features
+- SQL + SqlAlchemy
+- Supports both HTTP / 2.0 and HTTP / 1.0
+- Upload to Local S3 Storage
+- Auto Generation of client libraries
+
+
 # Requirements
 - python3.9
 - Docker
@@ -63,6 +70,23 @@ make run-tests
 make run-test-users
 ```
 
+
+# Serving HTTP/1.1 and HTTP/2.0
+Ensure you have these saved in the environment variables
+- `USE_SSL` = True
+- `USE_TCP` = True
+- `TCP_PORT` should be the port to listen on (e.g. 80 or 8100)
+- `SSL_PORT` should be the port to listen on (e.g. 443 or 8101)
+- `MAX_WORKERS` to the number of workers the system has.
+
+For local development
+- HTTP 2.0 is serve on `https://localhost:8101/docs`
+- HTTP 1.1 is serve on `http://localhost:8100/docs`
+- The `hypercorn/cert.pem` and `hypercorn/key.pem` can be generated with this command `openssl req -x509 -newkey rsa:4096 -keyout key.pem -out cert.pem -days 365 -nodes`
+
+For Production
+- Save the file path of the mounted `key.pem` to environment variable `KEYFILE` 
+- Save the file path of the mounted `cert.pem` to environment variable `CERTFILE` 
 
 
 # 

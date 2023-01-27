@@ -1,18 +1,24 @@
-from datetime import timedelta
-from fileinput import filename
-from io import BytesIO
-import mimetypes
+from urllib3.response import HTTPResponse
 import os
+from datetime import timedelta
+from io import BufferedReader, BytesIO
+
+from minio.helpers import ObjectWriteResult
+
+from filetype import filetype
 from minio import Minio
 
 from minio.error import MinioException
 
 from src.files.clients.client import BaseS3Client
 from src.exceptions import GeneralException
+from src.config import Settings
 
 
 class MinioClient(BaseS3Client):
-    def __init__(self) -> None:
+    def __init__(self, settings: Settings) -> None:
+        super().__init__(settings)
+
         self.client = Minio(
             self.settings.minio_host,
             access_key=self.settings.minio_access_key,
@@ -39,55 +45,43 @@ class MinioClient(BaseS3Client):
 
         return False
 
-    def stream_upload(self, buffer: BytesIO, bucket_name: str, file_name: str):
+    def download_file(self, bucket_name: str, file_name: str) -> BytesIO:
+        try:
+            response: HTTPResponse = self.client.get_object(bucket_name, file_name)
+            return BytesIO(response.data)
+        finally:
+            response.close()  # type: ignore
+            response.release_conn()  # type: ignore
+
+    def upload_file(self, buffer: BufferedReader, bucket_name: str, s3_file_name: str):
         if buffer.seekable():
             buffer.seek(0)
-
-        from filetype import filetype
-        from src.files.utils import make_custom_id
 
         try:
             mime_type = filetype.guess_mime(buffer)
             if mime_type is None:
                 raise TypeError()
         except TypeError:
-            self.logger.error(
+            self.logger.info(
                 "Unable to detect the mime type of this file, resetting it to application/octet-stream"
             )
             mime_type = "application/octet-stream"
 
-        try:
-            extension = filetype.guess_extension(buffer)
-        except TypeError:
-            raise GeneralException(
-                "Unable to determine extension of file. Ensure the uploaded file is a file-object."
-            )
-
-        original_file_name_without_extension = file_name.split("/")[-1]
         size = os.fstat(buffer.fileno()).st_size
-        new_file_name = (
-            f"{original_file_name_without_extension}-{make_custom_id()}.{extension}"
-        )
 
         bytes_per_stream = size
         if size > self.settings.upload_file_bytes_per_stream:
             bytes_per_stream = self.settings.upload_file_bytes_per_stream
 
-        result = self.client.put_object(
+        result: ObjectWriteResult = self.client.put_object(
             bucket_name=bucket_name,
-            object_name=new_file_name,
+            object_name=s3_file_name,
             data=buffer,
             length=bytes_per_stream,
             content_type=mime_type,
         )
 
-        print(
-            "created {0} object; etag: {1}, version-id: {2}".format(
-                result.object_name,
-                result.etag,
-                result.version_id,
-            )
-        )
+        return size
 
     def remove_file_object(self, bucket_name: str, file_name: str):
         try:

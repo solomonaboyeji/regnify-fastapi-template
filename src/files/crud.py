@@ -3,7 +3,10 @@ from typing import List, Union
 from uuid import UUID
 from sqlalchemy.orm import Session
 from src.config import setup_logger
+from src.files.utils import format_bucket_name
 from src.pagination import OrderDirection
+
+from src.exceptions import BaseConflictException
 
 from src.models import Bucket, FileObject
 from src.users.crud.users import UserCRUD
@@ -15,13 +18,19 @@ class FileCRUD:
         self.logger = setup_logger()
         self.user_crud = UserCRUD(db)
 
-    def get_bucket(self, owner_id: UUID) -> Union[Bucket, None]:
-        return self.db.query(Bucket).filter(Bucket.owner_id == owner_id).first()
+    def get_owner_bucket(self, owner_id: UUID) -> Union[Bucket, None]:
+        return (
+            self.db.query(Bucket)
+            .filter(Bucket.name == format_bucket_name(owner_id))
+            .first()
+        )
 
     def create_bucket(self, owner_id: UUID) -> Bucket:
-        name: str = str(owner_id).replace("_", "")
+        if self.get_owner_bucket(owner_id):
+            raise BaseConflictException("This user already has a bucket.")
 
-        db_bucket = Bucket(owner_id=owner_id, name=name)
+        bucket_name = format_bucket_name(owner_id)
+        db_bucket = Bucket(owner_id=owner_id, name=bucket_name)
         self.db.add(db_bucket)
         self.db.commit()
         self.db.refresh(db_bucket)
@@ -36,7 +45,7 @@ class FileCRUD:
         total_bytes: int = 0,
     ) -> FileObject:
 
-        db_bucket = self.get_bucket(owner_id)
+        db_bucket = self.get_owner_bucket(owner_id)
         if not db_bucket:
             self.logger.info(f"Creating bucket for user {owner_id}")
             db_bucket = self.create_bucket(owner_id)

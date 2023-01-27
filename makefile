@@ -37,7 +37,7 @@ build-local:
 	docker compose -f docker/local/docker-compose.yml build 
 
 kill-local:
-	docker compose -f docker/local/docker-compose.yml down
+	docker compose -f docker/local/docker-compose.yml down -v --remove-orphans
 
 run-local-migrations:
 	docker compose -f docker/local/docker-compose.yml run -v ./:/usr/src/regnify-api  --rm regnify-api  alembic upgrade head
@@ -188,6 +188,16 @@ run-test-files-crud:
 
 	# * run the tests
 	docker compose -f docker/test/docker-compose-test.yml run -v ${PWD}:/usr/src/regnify-api  --rm regnify-api python -m pytest --cov-report term-missing --cov=src/users tests/files/crud/test_files.py
+
+	make kill-test
+
+run-test-files-services:
+	make kill-test
+
+	make run-test-migrations
+
+	# * run the tests
+	docker compose -f docker/test/docker-compose-test.yml run -v ${PWD}:/usr/src/regnify-api  --rm regnify-api python -m pytest --cov-report term-missing --cov=src/users tests/files/service/test_service_files.py
 
 	make kill-test
 

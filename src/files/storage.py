@@ -1,18 +1,14 @@
-import enum
+from io import BufferedReader, BytesIO
 from src.config import Settings
-from src.files.clients.client import BaseS3Client
+from src.exceptions import GeneralException
 from src.files.clients.minio_client import MinioClient
-
-
-class BackendStorageOption(enum.Enum):
-    MINIO_STORAGE: str = "MINIO_STORAGE"  # type: ignore
-    GOOGLE_STORAGE: str = "GOOGLE_STORAGE"  # type: ignore
+from src.files.utils import BackendStorageOption, S3FileData, make_custom_id
 
 
 class BackendStorage:
     def __init__(self, settings: Settings) -> None:
         if settings.backend_storage_option == BackendStorageOption.MINIO_STORAGE.value:
-            self.client = MinioClient()
+            self.client = MinioClient(settings)
         elif (
             settings.backend_storage_option == BackendStorageOption.GOOGLE_STORAGE.value
         ):
@@ -23,6 +19,18 @@ class BackendStorage:
 
     def bucket_exists(self, bucket_name: str):
         return self.client.bucket_exists(bucket_name)
+
+    def upload_file(self, buffer: BufferedReader, s3_file_data: S3FileData):
+        return self.client.upload_file(
+            buffer=buffer,
+            bucket_name=s3_file_data.bucket_name,
+            s3_file_name=s3_file_data.file_name,
+        )
+
+    def download_file(self, s3_file_data: S3FileData):
+        return self.client.download_file(
+            bucket_name=s3_file_data.bucket_name, file_name=s3_file_data.file_name
+        )
 
     def get_signed_upload_url(self, bucket_name: str, file_name: str):
         return self.client.presigned_upload_url(bucket_name, file_name, days_expiring=7)
