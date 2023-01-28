@@ -1,15 +1,10 @@
 """Pydantic Models"""
 
 from datetime import datetime
-from optparse import Option
-from typing import Any, Optional
+from typing import Optional
 from uuid import UUID
 from pydantic import BaseModel, constr, EmailStr
-
-
-class AppBaseModel(BaseModel):
-    class Config:
-        orm_mode = True
+from src.schemas import ParentPydanticModel
 
 
 class SystemScopeOut(BaseModel):
@@ -21,7 +16,7 @@ class ManySystemScopeOut(BaseModel):
     scopes: list[SystemScopeOut]
 
 
-class UserBase(AppBaseModel):
+class UserBase(ParentPydanticModel):
     email: EmailStr
     access_begin: Optional[datetime]
     access_end: Optional[datetime]
@@ -34,7 +29,7 @@ class UserCreate(UserBase):
     password: str
 
 
-class UserUpdate(AppBaseModel):
+class UserUpdate(ParentPydanticModel):
     is_active: Optional[bool] = None
     is_super_admin: Optional[bool] = None
     last_name: Optional[constr(max_length=100)] = None  # type: ignore
@@ -44,16 +39,16 @@ class UserUpdate(AppBaseModel):
     access_end: Optional[datetime] = None
 
 
-class ChangePassword(AppBaseModel):
+class ChangePassword(ParentPydanticModel):
     password: str
 
 
-class ChangePasswordWithToken(AppBaseModel):
+class ChangePasswordWithToken(ParentPydanticModel):
     token: str
     new_password: constr(max_length=255)  # type: ignore
 
 
-class ProfileBase(AppBaseModel):
+class ProfileBase(ParentPydanticModel):
     last_name: constr(max_length=100)  # type: ignore
     first_name: constr(max_length=100)  # type: ignore
     avatar_url: str
@@ -68,12 +63,12 @@ class ProfileOut(ProfileBase):
     # id: UUID
 
 
-class MiniRoleOut(AppBaseModel):
+class MiniRoleOut(ParentPydanticModel):
     title: str
     permissions: list[str]
 
 
-class MiniUserRoleOut(AppBaseModel):
+class MiniUserRoleOut(ParentPydanticModel):
     role: MiniRoleOut
 
 
@@ -86,12 +81,12 @@ class UserOut(UserBase):
     last_login: Optional[datetime]
 
 
-class ManyUsersInDB(AppBaseModel):
+class ManyUsersInDB(ParentPydanticModel):
     total: int = 0
     data: list[UserOut]
 
 
-class RoleOut(AppBaseModel):
+class RoleOut(ParentPydanticModel):
     id: UUID
     title: str
     permissions: list[str]
@@ -102,21 +97,21 @@ class RoleOut(AppBaseModel):
     date_modified: Optional[datetime]
 
 
-class UserRoleOut(AppBaseModel):
+class UserRoleOut(ParentPydanticModel):
     role: RoleOut
 
 
-class ManyUserRolesOut(AppBaseModel):
+class ManyUserRolesOut(ParentPydanticModel):
     total: int
     user_roles: list[UserRoleOut]
 
 
-class RoleCreate(AppBaseModel):
+class RoleCreate(ParentPydanticModel):
     title: str
     permissions: list[str]
 
 
-class ManyRolesOut(AppBaseModel):
+class ManyRolesOut(ParentPydanticModel):
     # @validator("*", pre=True)
     # def load_profile(cls, v):
     #     if isinstance(v, Roles):
@@ -131,7 +126,7 @@ class UserInDB(UserOut):
     hashed_password: str
 
 
-class ItemBase(AppBaseModel):
+class ItemBase(ParentPydanticModel):
     title: str
     description: Optional[str]
 
@@ -142,9 +137,9 @@ class ItemCreate(ItemBase):
 
 class Item(ItemBase):
     id: UUID
-    owner_id: int
+    owner_id: UUID
 
 
-class ManyItems(AppBaseModel):
+class ManyItems(ParentPydanticModel):
     total: int = 0
     data: list[Item]

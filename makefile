@@ -187,7 +187,7 @@ run-test-files-crud:
 	make run-test-migrations
 
 	# * run the tests
-	docker compose -f docker/test/docker-compose-test.yml run -v ${PWD}:/usr/src/regnify-api  --rm regnify-api python -m pytest --cov-report term-missing --cov=src/users tests/files/crud/test_files.py
+	docker compose -f docker/test/docker-compose-test.yml run -v ${PWD}:/usr/src/regnify-api  --rm regnify-api python -m pytest --cov-report term-missing --cov=src/files tests/files/crud/test_files.py
 
 	make kill-test
 
@@ -197,7 +197,7 @@ run-test-files-services:
 	make run-test-migrations
 
 	# * run the tests
-	docker compose -f docker/test/docker-compose-test.yml run -v ${PWD}:/usr/src/regnify-api  --rm regnify-api python -m pytest --cov-report term-missing --cov=src/users tests/files/service/test_service_files.py
+	docker compose -f docker/test/docker-compose-test.yml run -v ${PWD}:/usr/src/regnify-api  --rm regnify-api python -m pytest --cov-report term-missing --cov=src/files tests/files/service/test_service_files.py
 
 	make kill-test
 

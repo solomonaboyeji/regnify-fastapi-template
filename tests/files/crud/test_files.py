@@ -80,7 +80,7 @@ def test_remove_file(test_db):
         == None
     )
 
-    db_bucket = file_crud.get_bucket(FILE_CRUD_CACHE["USER_ID"])  # type: ignore
+    db_bucket = file_crud.get_owner_bucket(FILE_CRUD_CACHE["USER_ID"])  # type: ignore
     assert isinstance(db_bucket, Bucket)
 
 
@@ -98,7 +98,7 @@ def test_remove_files(test_db):
         assert file_saved.total_bytes == 40
         file_ids.append(file_saved.id)
 
-    db_bucket = file_crud.get_bucket(FILE_CRUD_CACHE["USER_ID"])  # type: ignore
+    db_bucket = file_crud.get_owner_bucket(FILE_CRUD_CACHE["USER_ID"])  # type: ignore
     assert isinstance(db_bucket, Bucket)
 
     assert file_crud.remove_files(file_ids) == x_files_create
@@ -106,5 +106,5 @@ def test_remove_files(test_db):
     for deleted_file_id in file_ids:
         assert file_crud.get_file(deleted_file_id) == None
 
-    db_bucket = file_crud.get_bucket(FILE_CRUD_CACHE["USER_ID"])  # type: ignore
+    db_bucket = file_crud.get_owner_bucket(FILE_CRUD_CACHE["USER_ID"])  # type: ignore
     assert isinstance(db_bucket, Bucket)

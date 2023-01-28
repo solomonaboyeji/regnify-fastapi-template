@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta
 from typing import Any
-from uuid import UUID
+
 from passlib.context import CryptContext
 
 from sqlalchemy.orm import Session

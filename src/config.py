@@ -91,8 +91,13 @@ class Settings(BaseSettings):
 
     backend_storage_option: str = os.getenv("BACKEND_STORAGE_OPTION", "MINIO_STORAGE")  # type: ignore
 
+    # * Number of bytes to send while uploading a particular file, one at a time.
+    # * If the size of a file is more than the value provided here, the value here will be used
     upload_file_bytes_per_stream: int = int(
-        os.getenv("UPLOAD_FILE_BYTES_PER_STREAM", 1024 * 1024)  # 1mb
+        os.getenv("UPLOAD_FILE_BYTES_PER_STREAM", (1024 * 1024) * 100)  # 100mb
+    )
+    max_size_of_a_file: int = int(
+        os.getenv("MAX_SIZE_OF_A_FILE", (1024 * 1024) * 100)  # 100 mb 104,857,600
     )
 
     def get_full_database_url(self):

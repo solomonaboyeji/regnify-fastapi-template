@@ -11,7 +11,7 @@ from minio import Minio
 from minio.error import MinioException
 
 from src.files.clients.client import BaseS3Client
-from src.exceptions import GeneralException
+from src.exceptions import GeneralException, FileTooLargeException
 from src.config import Settings
 
 
@@ -62,6 +62,7 @@ class MinioClient(BaseS3Client):
             if mime_type is None:
                 raise TypeError()
         except TypeError:
+            buffer.close()
             self.logger.info(
                 "Unable to detect the mime type of this file, resetting it to application/octet-stream"
             )
@@ -73,7 +74,13 @@ class MinioClient(BaseS3Client):
         if size > self.settings.upload_file_bytes_per_stream:
             bytes_per_stream = self.settings.upload_file_bytes_per_stream
 
-        result: ObjectWriteResult = self.client.put_object(
+        if size > self.settings.max_size_of_a_file:
+            buffer.close()
+            raise FileTooLargeException(
+                "The file being uploaded has a file size larger than the limit."
+            )
+
+        _: ObjectWriteResult = self.client.put_object(
             bucket_name=bucket_name,
             object_name=s3_file_name,
             data=buffer,

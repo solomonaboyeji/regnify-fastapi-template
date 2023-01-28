@@ -3,7 +3,6 @@ from datetime import timedelta
 from typing import Any, Union
 from uuid import UUID
 
-
 from jose import jwt
 from jose.exceptions import ExpiredSignatureError
 from sqlalchemy.orm import Session

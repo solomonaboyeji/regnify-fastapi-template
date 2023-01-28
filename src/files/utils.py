@@ -1,6 +1,7 @@
 import hashlib
-import uuid
+
 import enum
+import uuid
 
 
 def format_bucket_name(owner_id: uuid.UUID):

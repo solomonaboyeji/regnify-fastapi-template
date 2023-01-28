@@ -1,5 +1,5 @@
-from uuid import UUID
 from typing import Union
+from uuid import UUID
 from sqlalchemy.orm import Session
 from src.config import setup_logger
 from src.exceptions import GeneralException
@@ -78,7 +78,7 @@ class UserCRUD:
                 )
             )
 
-            hashed_password = get_password_hash(user.password)
+            hashed_password = get_password_hash(password=user.password)
             db_user = models.User(
                 email=user.email,
                 hashed_password=hashed_password,

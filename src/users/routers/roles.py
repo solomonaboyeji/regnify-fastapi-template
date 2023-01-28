@@ -1,6 +1,5 @@
 """User's Router"""
 
-from typing import List
 from uuid import UUID
 from fastapi import APIRouter, Depends, Security, Body
 from src.config import setup_logger

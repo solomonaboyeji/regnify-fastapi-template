@@ -1,10 +1,12 @@
+from calendar import c
 import datetime
 from datetime import timedelta
+import sre_parse
 import time
 from typing import Any
 from urllib import response
+import uuid
 
-from uuid import uuid4
 from jose import jwt
 
 from src.service import ServiceResult
@@ -126,7 +128,7 @@ def test_get_user_by_id(user_service: UserService):
     assert isinstance(user_with_id.data, User)
     assert user_with_id.exception == None
 
-    none_result = user_service.get_user_by_id(uuid4())
+    none_result = user_service.get_user_by_id(uuid.uuid4())
     assert not none_result.success
     assert none_result.data == None
     assert isinstance(none_result.exception, UserNotFoundException)
@@ -181,19 +183,24 @@ def test_change_password(user_service: UserService):
     assert old_hashed_password != updated_user.hashed_password  # type: ignore
 
     # * try updating a user that does not exist
-    service_result = user_service.update_user_password(uuid4(), "new-password")  # type: ignore
+    service_result = user_service.update_user_password(uuid.uuid4(), "new-password")  # type: ignore
     assert not service_result.success
 
 
 def test_create_request_password_token(
-    user_service: UserService, app_settings: Settings
+    test_db, test_user: User, app_settings: Settings
 ):
+    user_service = UserService(
+        db=test_db, requesting_user=test_user, app_settings=Settings()
+    )
+
     result = user_service.create_request_password("invalid@regnify.com")  # type: ignore
     assert isinstance(result, ServiceResult)
     assert not result.success
 
     service_result = user_service.get_user_by_email(prefix + "2@regnify.com")
     assert isinstance(service_result, ServiceResult)
+    assert service_result.success, service_result.exception
     user_under_test: User = service_result.data
 
     result = user_service.create_request_password(
@@ -210,11 +217,13 @@ def test_create_request_password_token(
     assert payload["type"] == "PASSWORD_REQUEST"
 
 
-def test_change_password_with_reset_token(
-    user_service: UserService, app_settings: Settings
-):
+def test_change_password_with_reset_token(test_db, test_user: User):
+    user_service = UserService(
+        db=test_db, requesting_user=test_user, app_settings=Settings()
+    )
     service_result = user_service.get_user_by_email(prefix + "2@regnify.com")
     assert isinstance(service_result, ServiceResult)
+    assert service_result.success, service_result.exception
     user_under_test: User = service_result.data
 
     result = user_service.create_request_password(
@@ -233,6 +242,7 @@ def test_should_not_be_able_change_password_with_expired_token(
 ):
     service_result = user_service.get_user_by_email(prefix + "2@regnify.com")
     assert isinstance(service_result, ServiceResult)
+    assert service_result.success, service_result.exception
     user_under_test: User = service_result.data
 
     result = user_service.create_request_password(
@@ -278,7 +288,7 @@ def test_should_not_be_able_to_change_with_invalid_user(
         minutes=app_settings.password_request_minutes
     )
     to_encode: dict[str, Any] = {
-        "sub": str(uuid4()),
+        "sub": str(10000000),
         "exp": expires_in,
         "type": "PASSWORD_REQUEST",
     }

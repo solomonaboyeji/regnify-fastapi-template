@@ -1,8 +1,7 @@
-from io import BufferedReader, BytesIO
+from io import BufferedReader
 from src.config import Settings
-from src.exceptions import GeneralException
 from src.files.clients.minio_client import MinioClient
-from src.files.utils import BackendStorageOption, S3FileData, make_custom_id
+from src.files.utils import BackendStorageOption, S3FileData
 
 
 class BackendStorage:
@@ -12,7 +11,7 @@ class BackendStorage:
         elif (
             settings.backend_storage_option == BackendStorageOption.GOOGLE_STORAGE.value
         ):
-            raise NotImplementedError
+            raise NotImplementedError("Google Cloud Storage is not yet implemented.")
 
     def create_bucket(self, bucket_name: str):
         self.client.make_bucket(bucket_name)
