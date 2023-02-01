@@ -14,6 +14,8 @@ from src.users.routers.roles import router as role_router
 from src.config import setup_logger
 from src.service import custom_openapi_with_scopes, get_settings
 
+from src.database import open_db_connections, close_db_connections
+
 models.Base.metadata.create_all(bind=engine)
 
 logger = setup_logger()
@@ -58,3 +60,13 @@ def check_dependencies():
         raise GeneralException("Database URL has not been configured.")
 
     init_platform()
+
+
+@app.on_event("startup")
+def open_database_connection_pools():
+    open_db_connections()
+
+
+@app.on_event("shutdown")
+def close_database_connection_pools():
+    close_db_connections()
