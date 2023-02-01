@@ -13,6 +13,7 @@ from minio.error import MinioException
 from src.files.clients.client import BaseS3Client
 from src.exceptions import GeneralException, FileTooLargeException
 from src.config import Settings
+from src.service import ONE_MB_IN_BYTES
 
 
 class MinioClient(BaseS3Client):
@@ -53,20 +54,37 @@ class MinioClient(BaseS3Client):
             response.close()  # type: ignore
             response.release_conn()  # type: ignore
 
-    def upload_file(self, buffer: BufferedReader, bucket_name: str, s3_file_name: str):
+    def upload_file(
+        self,
+        buffer: BytesIO,
+        bucket_name: str,
+        s3_file_name: str,
+        mime_type: str,
+        file_size_limit: int = -1,
+    ):
+        """
+        Uploads the file to the correct S3 storage.
+
+        Args:
+            buffer (BufferedReader): The bytes of the file to upload.
+            bucket_name (str): The name of the bucket to upload to.
+            s3_file_name (str): The S3 compliance file name.
+            file_size_limit (int): The file size limit (in bytes) to check the file's size against.
+
+        Raises:
+            TypeError: If the method is unable to determine the mime type of the file.
+            FileTooLargeException: If the file is larger than the specified limit.
+
+        Returns:
+            int: The size of the uploaded file.
+
+        """
+
+        print(buffer.tell())
+        print(len(buffer.read()))
+
         if buffer.seekable():
             buffer.seek(0)
-
-        try:
-            mime_type = filetype.guess_mime(buffer)
-            if mime_type is None:
-                raise TypeError()
-        except TypeError:
-            buffer.close()
-            self.logger.info(
-                "Unable to detect the mime type of this file, resetting it to application/octet-stream"
-            )
-            mime_type = "application/octet-stream"
 
         size = os.fstat(buffer.fileno()).st_size
 
@@ -74,10 +92,15 @@ class MinioClient(BaseS3Client):
         if size > self.settings.upload_file_bytes_per_stream:
             bytes_per_stream = self.settings.upload_file_bytes_per_stream
 
-        if size > self.settings.max_size_of_a_file:
+        expected_max_file_size = (
+            self.settings.max_size_of_a_file
+            if file_size_limit <= 0
+            else file_size_limit
+        )
+        if size > expected_max_file_size:
             buffer.close()
             raise FileTooLargeException(
-                "The file being uploaded has a file size larger than the limit."
+                f"The file being uploaded has a file size larger than the limit. Max allowed file size: { expected_max_file_size/  ONE_MB_IN_BYTES } mb"
             )
 
         _: ObjectWriteResult = self.client.put_object(

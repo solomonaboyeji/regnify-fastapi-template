@@ -65,10 +65,14 @@ class FileService(BaseService):
         return db_bucket
 
     def upload_file(
-        self, buffer: BufferedReader, user_id: UUID, file_name: str
+        self,
+        buffer: BytesIO,
+        user_id: UUID,
+        file_name: str,
+        file_size_limit: int = -1,
     ) -> ServiceResult[Union[FileObjectOut, GeneralException]]:
         try:
-            extension = filetype.guess_extension(buffer)
+            extension = str(filetype.guess_extension(buffer))
         except TypeError:
             return failed_service_result(
                 GeneralException(
@@ -95,6 +99,17 @@ class FileService(BaseService):
         except GeneralException as raised_exception:
             return failed_service_result(raised_exception)
 
+        try:
+            mime_type = filetype.guess_mime(buffer)
+            if mime_type is None:
+                raise TypeError()
+        except TypeError:
+            buffer.close()
+            self.logger.info(
+                "Unable to detect the mime type of this file, resetting it to application/octet-stream"
+            )
+            mime_type = "application/octet-stream"
+
         s3_file_data = S3FileData(
             file_name=new_file_name,
             bucket_name=format_bucket_name(user_id),
@@ -103,7 +118,10 @@ class FileService(BaseService):
 
         try:
             total_bytes = self.backend_storage.upload_file(
-                buffer=buffer, s3_file_data=s3_file_data
+                buffer=buffer,
+                s3_file_data=s3_file_data,
+                file_size_limit=file_size_limit,
+                mime_type=mime_type,
             )
         except FileTooLargeException as raised_exception:
             self.logger.exception(raised_exception)
@@ -116,6 +134,9 @@ class FileService(BaseService):
                 original_file_name=file_name,
                 owner_id=user_id,
                 total_bytes=total_bytes,
+                mime_type=mime_type,
+                extension=extension,
+                backend_storage=self.app_settings.backend_storage_option,
             )
             return success_service_result(FileObjectOut.parse_obj(file_object.__dict__))
         except Exception as raised_exception:

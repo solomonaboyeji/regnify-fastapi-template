@@ -1,11 +1,15 @@
+from uuid import UUID
 import pytest
 from datetime import datetime, timedelta
 from jose import jwt
 from src.exceptions import GeneralException
+from src.models import FileObject
 from src.security import create_access_token, get_password_hash
 from src.users.crud.users import UserCRUD
 from src.users.models import Profile, User
-from src.users.schemas import UserCreate, UserOut, UserUpdate
+from src.users.schemas import UserCreate, UserUpdate
+from src.files.crud import FileCRUD
+from src.config import Settings
 
 from src.config import setup_logger
 
@@ -56,6 +60,8 @@ def test_create_user(test_db):
     assert user.access_end == access_end
     assert user.access_begin == access_begin
 
+    assert user.profile.photo_file == None
+
 
 def test_create_user_with_existing_email(user_crud: UserCRUD):
     email_under_test = "3@regnify.com"
@@ -102,9 +108,32 @@ def test_change_password(user_crud: UserCRUD):
     assert new_user.hashed_password != old_hashed_password
 
 
-def test_update_user_photo(user_crud: UserCRUD):
+def test_update_user_photo(
+    user_crud: UserCRUD, crud_user: User, test_db, app_settings: Settings
+):
+    file_crud = FileCRUD(test_db)
+    file_object = file_crud.save_file(
+        "123-simple-file.png",
+        original_file_name="simple-file.png",
+        owner_id=crud_user.id,
+        total_bytes=10,
+        mime_type="application/octet-stream",
+        extension="jpg",
+        backend_storage=app_settings.backend_storage_option,
+    )
+    assert isinstance(file_object, FileObject)
+
     email_under_test = "3@regnify.com"
-    old_user = user_crud.get_user_by_email(email_under_test)
+    old_user: User = user_crud.get_user_by_email(email_under_test)
     assert old_user != None
 
-    assert 1 == 2
+    profile = user_crud.update_user_profile_photo(
+        UUID(str(crud_user.id)),
+        file_object_id=UUID(str(file_object.id)),
+    )
+    assert isinstance(profile, Profile)
+    assert profile.photo_file_id == file_object.id
+
+    assert profile.photo_file.original_file_name == "simple-file.png"
+    assert profile.photo_file.file_name == "123-simple-file.png"
+    assert profile.photo_file.backend_storage == app_settings.backend_storage_option

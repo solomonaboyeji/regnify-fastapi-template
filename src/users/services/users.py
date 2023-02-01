@@ -1,13 +1,19 @@
 import datetime
 from datetime import timedelta
-from typing import Any, Union
+from io import BufferedReader, BytesIO
+from typing import Any, Tuple, Union
 from uuid import UUID
+
+from sqlalchemy.orm import Session
 
 from jose import jwt
 from jose.exceptions import ExpiredSignatureError
-from sqlalchemy.orm import Session
 from src.config import Settings, setup_logger
-from src.exceptions import BaseForbiddenException, GeneralException
+from src.exceptions import (
+    BaseForbiddenException,
+    GeneralException,
+    BaseNotFoundException,
+)
 from src.security import decode_token, get_password_hash
 from src.service import (
     BaseService,
@@ -20,7 +26,12 @@ from src.service import (
 from src.users import schemas
 from src.users.crud.users import UserCRUD
 from src.users.exceptions import DuplicateUserException, UserNotFoundException
+from src.exceptions import BaseForbiddenException
 from src.users.models import Profile, Roles, User
+from src.users.schemas import ProfileOut
+
+from src.files.service import FileService
+from src.files.schemas import FileObjectOut
 
 
 class UserService(BaseService):
@@ -31,6 +42,9 @@ class UserService(BaseService):
         self.users_crud = UserCRUD(db)
         self.app_settings: Settings = app_settings
         self.logger = setup_logger()
+        self.file_service = FileService(
+            requesting_user=requesting_user, db=db, app_settings=app_settings
+        )
 
         if requesting_user is None:
             raise GeneralException("Requesting User was not provided.")
@@ -257,3 +271,69 @@ class UserService(BaseService):
             return failed_service_result(raised_exception)
 
         return success_service_result(updated_user)
+
+    def upload_user_photo(
+        self, user_id: UUID, buffer: BytesIO, file_name: str
+    ) -> ServiceResult[Union[GeneralException, Profile]]:
+
+        if (
+            self.requesting_user.id != user_id
+            and not self.requesting_user.is_super_admin
+        ):
+            buffer.close()
+            return failed_service_result(
+                BaseForbiddenException("You are not allowed to perform this request.")
+            )
+
+        get_user_result = self.get_user_by_id(user_id)
+        if not get_user_result.success:
+            buffer.close()
+            return failed_service_result(
+                BaseNotFoundException("The user does not exist.")
+            )
+
+        user: User = get_user_result.data
+
+        upload_result = self.file_service.upload_file(
+            buffer=buffer,
+            user_id=user_id,
+            file_name=file_name,
+            file_size_limit=self.app_settings.user_photo_file_limit,
+        )
+
+        if not upload_result.success:
+            buffer.close()
+            return failed_service_result(upload_result.exception)
+
+        if user.profile.photo_file_id:
+            self.file_service.delete_file(user.id, user.profile.photo_file_id)
+
+        file_object: FileObjectOut = upload_result.data
+
+        profile = self.users_crud.update_user_profile_photo(
+            user_id=user_id, file_object_id=file_object.id
+        )
+
+        return success_service_result(ProfileOut.parse_obj(profile.__dict__))
+
+    def download_user_photo(
+        self, user_id: UUID
+    ) -> ServiceResult[Union[Tuple[BytesIO, FileObjectOut], Exception]]:
+
+        result = self.get_user_by_id(user_id)
+        if not result.success:
+            return failed_service_result(result.exception)
+
+        profile: Profile = result.data.profile
+
+        buffer_result = self.file_service.download_file(profile.photo_file.id)
+        if not buffer_result.success:
+            return failed_service_result(buffer_result.exception)
+
+        buffer: BufferedReader = buffer_result.data
+        return success_service_result(
+            (
+                BytesIO(buffer.read()),
+                FileObjectOut.parse_obj(profile.photo_file.__dict__),
+            )
+        )

@@ -3,6 +3,7 @@ from src.models import Bucket, FileObject
 from src.users.crud.users import UserCRUD
 from src.users.models import User
 from src.users.schemas import UserCreate
+from src.config import Settings
 
 FILE_CRUD_CACHE = {}
 
@@ -21,6 +22,9 @@ def test_save_file(test_db):
         original_file_name="simple-file.jpg",
         owner_id=FILE_CRUD_CACHE["USER_ID"],  # type: ignore
         total_bytes=100,
+        mime_type="application/octet-stream",
+        extension="jpg",
+        backend_storage=Settings().backend_storage_option,
     )
     assert isinstance(file_saved, FileObject)
     assert isinstance(file_saved.bucket, Bucket)
@@ -94,6 +98,9 @@ def test_remove_files(test_db):
             original_file_name="simple-file.jpg",
             owner_id=FILE_CRUD_CACHE["USER_ID"],  # type: ignore
             total_bytes=40,
+            mime_type="application/octet-stream",
+            extension="jpg",
+            backend_storage=Settings().backend_storage_option,
         )
         assert file_saved.total_bytes == 40
         file_ids.append(file_saved.id)

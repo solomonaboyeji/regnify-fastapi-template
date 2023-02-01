@@ -1,13 +1,16 @@
 from calendar import c
 import datetime
 from datetime import timedelta
+from io import BytesIO
 import sre_parse
+from sys import float_repr_style
 import time
 from typing import Any
 from urllib import response
 import uuid
 
 from jose import jwt
+from src.files.schemas import FileObjectOut
 
 from src.service import ServiceResult
 from src.users.exceptions import UserNotFoundException
@@ -16,6 +19,7 @@ from src.users.schemas import UserCreate, UserUpdate
 from src.users.services.users import UserService
 
 from src.config import Settings, setup_logger
+from tests.files.service.test_service_files import FILE_PATH_UNDER_TEST
 
 logger = setup_logger()
 
@@ -159,6 +163,77 @@ def test_update_user(test_db, app_settings, test_admin_user):
     assert result.data.profile.last_name == "User222"
     assert result.data.is_active == False
     assert result.data.is_super_admin
+
+
+def test_upload_user_photo(test_db, app_settings, test_admin_user, test_password):
+
+    user_service = UserService(
+        requesting_user=test_admin_user, db=test_db, app_settings=app_settings
+    )
+
+    result = user_service.get_user_by_email(prefix + "2@regnify.com")
+    assert isinstance(result, ServiceResult)
+    assert isinstance(result.data, User)
+    user_under_test: User = result.data
+
+    with open(FILE_PATH_UNDER_TEST, "rb") as f:
+        result = user_service.upload_user_photo(
+            user_id=uuid.UUID(str(user_under_test.id)),
+            buffer=f,
+            file_name="simple-file.png",
+        )
+        assert result.success, result.exception
+        assert result.data.photo_file != None
+        assert result.data.photo_file.original_file_name == "simple-file.png"
+
+    # * Test the download of the photo file
+    result = user_service.download_user_photo(
+        user_id=uuid.UUID(str(user_under_test.id))
+    )
+    assert result.success, result.exception
+
+    assert isinstance(result.data[0], BytesIO)
+    assert isinstance(result.data[1], FileObjectOut)
+    assert len(result.data[0].read()) > 0
+
+
+def test_non_admin_cannot_upload_photo_for_another_user(
+    test_db, app_settings, test_admin_user, test_password
+):
+
+    user_service = UserService(
+        requesting_user=test_admin_user, db=test_db, app_settings=app_settings
+    )
+
+    result = user_service.get_user_by_email(prefix + "2@regnify.com")
+    assert isinstance(result, ServiceResult)
+    assert isinstance(result.data, User)
+    user_under_test: User = result.data
+
+    # * create non admin user
+    non_admin_user: ServiceResult = user_service.create_user(
+        UserCreate(
+            email=prefix + "1-1-new-user@regnify.com",  # type: ignore
+            last_name="Simple",
+            first_name="User",
+            password=test_password,
+        )
+    )
+    assert isinstance(non_admin_user.data, User)
+    non_admin_user = non_admin_user.data
+
+    # * create user service with the non admin user as the requesting user.
+    non_admin_user_service = UserService(
+        requesting_user=non_admin_user, db=test_db, app_settings=app_settings
+    )
+
+    with open(FILE_PATH_UNDER_TEST, "rb") as f:
+        result = non_admin_user_service.upload_user_photo(
+            user_id=uuid.UUID(str(user_under_test.id)),
+            buffer=f,
+            file_name="simple-file.png",
+        )
+        assert not result.success, result.exception
 
 
 def test_update_user_last_password_token(user_service: UserService):

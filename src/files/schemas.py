@@ -13,6 +13,13 @@ class FileObjectOut(ParentPydanticModel):
     file_name: str
     original_file_name: str
     bucket: BucketOut
+    mime_type: str
+    extension: str
+
+
+class MiniFileObjectOut(ParentPydanticModel):
+    id: UUID
+    original_file_name: str
 
 
 class ManyFileObjectsOut(ParentPydanticModel):

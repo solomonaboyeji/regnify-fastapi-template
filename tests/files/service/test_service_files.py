@@ -118,9 +118,23 @@ def test_upload_file_larger_than_limit(test_db, file_user):
         )
 
         result = file_service.upload_file(
+            buffer=f, user_id=file_user.id, file_name="simple-file.jpg"
+        )
+        assert isinstance(result, ServiceResult)
+        assert not result.success, result.data
+        assert isinstance(result.exception, FileTooLargeException)
+
+    # * test with a custom passed file size
+    with open(FILE_PATH_UNDER_TEST, "rb") as f:
+        file_service = FileService(
+            requesting_user=file_user, db=test_db, app_settings=Settings()
+        )
+
+        result = file_service.upload_file(
             buffer=f,
             user_id=file_user.id,
             file_name="simple-file.jpg",
+            file_size_limit=test_file_size_in_bytes - 1,
         )
         assert isinstance(result, ServiceResult)
         assert not result.success, result.data

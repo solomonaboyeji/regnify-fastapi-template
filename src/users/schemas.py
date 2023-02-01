@@ -6,6 +6,8 @@ from uuid import UUID
 from pydantic import BaseModel, constr, EmailStr
 from src.schemas import ParentPydanticModel
 
+from src.files.schemas import MiniFileObjectOut
+
 
 class SystemScopeOut(BaseModel):
     title: str
@@ -59,8 +61,8 @@ class ProfileCreate(ProfileBase):
 
 
 class ProfileOut(ProfileBase):
-    pass
     # id: UUID
+    photo_file: Optional[MiniFileObjectOut]
 
 
 class MiniRoleOut(ParentPydanticModel):

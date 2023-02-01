@@ -124,7 +124,8 @@ class UserCRUD:
     ) -> models.Profile:
         db_profile = (
             self.db.query(models.Profile)
-            .filter(models.Profile.user.id == user_id)
+            .join(models.User.profile)
+            .filter(models.User.id == user_id)
             .first()
         )
         if db_profile is None:

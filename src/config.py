@@ -99,6 +99,9 @@ class Settings(BaseSettings):
     max_size_of_a_file: int = int(
         os.getenv("MAX_SIZE_OF_A_FILE", (1024 * 1024) * 100)  # 100 mb 104,857,600
     )
+    user_photo_file_limit: int = int(
+        os.getenv("MAX_SIZE_OF_A_USER_PHOTO", (1024 * 1024) * 5)  # 5 mb
+    )
 
     def get_full_database_url(self):
         return f"postgresql://{self.db_user}:{self.db_password}@{self.db_host}:{self.db_port}/{self.db_name}"

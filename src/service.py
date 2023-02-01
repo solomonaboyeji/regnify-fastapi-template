@@ -24,6 +24,8 @@ _T = TypeVar("_T")
 
 logger = setup_logger()
 
+ONE_MB_IN_BYTES = 1024 / 1024
+
 
 @lru_cache()
 def get_settings():

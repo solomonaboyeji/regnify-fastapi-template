@@ -1,8 +1,12 @@
 """User's Router"""
 
+from io import BytesIO
+from tempfile import NamedTemporaryFile
+
 from uuid import UUID
 from pydantic import EmailStr
-from fastapi import APIRouter, Depends, Header, Path, Query, Security, Body
+from fastapi import APIRouter, Depends, Header, Path, Query, Security, UploadFile, File
+from fastapi.responses import FileResponse
 from src import mail as mail_funcs
 
 from src.auth.dependencies import (
@@ -10,6 +14,7 @@ from src.auth.dependencies import (
     user_must_be_admin,
 )
 from src.config import setup_logger
+from src.files.schemas import FileObjectOut
 from src.scopes import UserScope
 from src.service import AppResponseModel, does_admin_token_match
 from src.pagination import CommonQueryParams
@@ -184,3 +189,45 @@ def read_user(
 ):
     result = user_service.get_user_by_id(id=user_id)
     return handle_result(result, schemas.UserOut)  # type: ignore
+
+
+@router.get(
+    "/{user_id}/download-photo",
+    response_class=FileResponse,
+)
+def download_user_photo(
+    user_id: UUID,
+    user_service: UserService = Depends(initiate_user_service),
+):
+    result = user_service.download_user_photo(user_id=user_id)
+    buffer: BytesIO = result.data[0]
+    file_object: FileObjectOut = result.data[1]
+
+    delete_immediately = True
+    with NamedTemporaryFile(
+        mode="w+b", suffix=file_object.extension, delete=delete_immediately
+    ) as file_out:
+        file_out.write(buffer.read())
+        return FileResponse(
+            file_out.name,
+            media_type=file_object.mime_type,
+            headers={"Cache-Control": "max-age=0"},
+        )
+
+
+@router.put("/{user_id}/upload-photo", response_model=schemas.ProfileOut)
+def upload_user_photo(
+    user_id: UUID,
+    photo_file: UploadFile = File(...),
+    user_service: UserService = Depends(initiate_user_service),
+):
+
+    print(type(photo_file.file))
+
+    buffer = BytesIO(photo_file.file.read())
+    result = user_service.upload_user_photo(
+        user_id=user_id,
+        buffer=buffer,
+        file_name=photo_file.filename,
+    )
+    return handle_result(result, schemas.ProfileOut)  # type: ignore

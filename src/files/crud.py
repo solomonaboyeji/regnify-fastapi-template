@@ -42,6 +42,9 @@ class FileCRUD:
         file_name: str,
         original_file_name: str,
         owner_id,
+        mime_type: str,
+        extension: str,
+        backend_storage: str,
         total_bytes: int = 0,
     ) -> FileObject:
 
@@ -54,7 +57,10 @@ class FileCRUD:
             original_file_name=original_file_name.lower(),
             file_name=file_name,
             bucket_id=db_bucket.id,
+            mime_type=extension,
+            extension=mime_type,
             total_bytes=total_bytes,
+            backend_storage=backend_storage,
         )
 
         self.db.add(db_file_object)

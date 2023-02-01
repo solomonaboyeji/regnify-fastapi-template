@@ -32,6 +32,9 @@ class FileObject(Base):
     file_name = Column(String(255))
     original_file_name = Column(String(255))
 
+    extension = Column(String(100))
+    mime_type = Column(String(100))
+
     backend_storage = Column(String(255), default="NOT_SPECIFIED")
 
     total_bytes = Column(Integer, default=0)
