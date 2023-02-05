@@ -10,6 +10,10 @@ services:
       dockerfile: docker/Dockerfile
     
     command: hypercorn src.main:app --reload --bind 0.0.0.0:8100
+    volumes:
+      - ./../../:/usr/src/regnify-api
+
+    # command: uvicorn src.main:app --reload --port 8100
 
     environment:
       - MAIL_USERNAME=emailusername

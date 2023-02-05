@@ -80,7 +80,7 @@ kill-test: kill-local
 	docker compose -f docker/test/docker-compose-test.yml down
 
 run-test-migrations:
-	docker compose -f docker/test/docker-compose-test.yml run -v ${PWD}:/usr/src/regnify-api  --rm regnify-api alembic upgrade head
+	docker compose -f docker/test/docker-compose-test.yml run -v ./:/usr/src/regnify-api  --rm regnify-api alembic upgrade head
 
 run-tests:
 	make kill-test
@@ -88,7 +88,7 @@ run-tests:
 	make run-test-migrations
 
 	# * run the tests
-	docker compose -f docker/test/docker-compose-test.yml run -v ${PWD}:/usr/src/regnify-api  --rm regnify-api python -m pytest --cov-report term-missing --cov=src/
+	docker compose -f docker/test/docker-compose-test.yml run -v ./:/usr/src/regnify-api  --rm regnify-api python -m pytest --cov-report term-missing --cov=src/
 
 	make kill-test
 
@@ -101,7 +101,7 @@ run-test-users:
 	make run-test-migrations
 
 	# * run the tests
-	docker compose -f docker/test/docker-compose-test.yml run -v ${PWD}:/usr/src/regnify-api  --rm regnify-api python -m pytest --cov-report term-missing --cov=src/users tests/users 
+	docker compose -f docker/test/docker-compose-test.yml run -v ./:/usr/src/regnify-api  --rm regnify-api python -m pytest --cov-report term-missing --cov=src/users tests/users 
 
 	make kill-test
 
@@ -111,7 +111,7 @@ run-test-users-crud:
 	make run-test-migrations
 	
 	# * run the tests
-	docker compose -f docker/test/docker-compose-test.yml run -v ${PWD}:/usr/src/regnify-api  --rm regnify-api python -m pytest --cov-report term-missing --cov=src/users tests/users/crud/test_users.py
+	docker compose -f docker/test/docker-compose-test.yml run -v ./:/usr/src/regnify-api  --rm regnify-api python -m pytest --cov-report term-missing --cov=src/users tests/users/crud/test_users.py
 
 	make kill-test
 
@@ -121,7 +121,7 @@ run-test-roles-crud:
 	make run-test-migrations
 	
 	# * run the tests
-	docker compose -f docker/test/docker-compose-test.yml run -v ${PWD}:/usr/src/regnify-api  --rm regnify-api python -m pytest --cov-report term-missing --cov=src/users tests/users/crud/test_roles.py
+	docker compose -f docker/test/docker-compose-test.yml run -v ./:/usr/src/regnify-api  --rm regnify-api python -m pytest --cov-report term-missing --cov=src/users tests/users/crud/test_roles.py
 
 	make kill-test
 
@@ -131,7 +131,7 @@ run-test-users-services:
 	make run-test-migrations
 	
 	# * run the tests
-	docker compose -f docker/test/docker-compose-test.yml run -v ${PWD}:/usr/src/regnify-api --rm regnify-api python -m pytest --cov-report term-missing --cov=src/users/services tests/users/services/test_users.py
+	docker compose -f docker/test/docker-compose-test.yml run -v ./:/usr/src/regnify-api --rm regnify-api python -m pytest --cov-report term-missing --cov=src/users/services tests/users/services/test_users.py
 
 	make kill-test
 
@@ -141,7 +141,7 @@ run-test-roles-services:
 	make run-test-migrations
 	
 	# * run the tests
-	docker compose -f docker/test/docker-compose-test.yml run -v ${PWD}:/usr/src/regnify-api --rm regnify-api python -m pytest --cov-report term-missing --cov=src/users/services tests/users/services/test_roles.py
+	docker compose -f docker/test/docker-compose-test.yml run -v ./:/usr/src/regnify-api --rm regnify-api python -m pytest --cov-report term-missing --cov=src/users/services tests/users/services/test_roles.py
 
 	make kill-test
 
@@ -151,7 +151,7 @@ run-test-users-http:
 	make run-test-migrations
 	
 	# * run the tests
-	docker compose -f docker/test/docker-compose-test.yml run -v ${PWD}:/usr/src/regnify-api --rm regnify-api python -m pytest --cov-report term-missing --cov=src/users/routers tests/users/http/test_users.py
+	docker compose -f docker/test/docker-compose-test.yml run -v ./:/usr/src/regnify-api --rm regnify-api python -m pytest --cov-report term-missing --cov=src/users/routers tests/users/http/test_users.py
 
 	make kill-test
 
@@ -161,7 +161,7 @@ run-test-roles-http:
 	make run-test-migrations
 	
 	# * run the tests
-	docker compose -f docker/test/docker-compose-test.yml run -v ${PWD}:/usr/src/regnify-api --rm regnify-api python -m pytest --cov-report term-missing --cov=src/users tests/users/http/test_roles.py
+	docker compose -f docker/test/docker-compose-test.yml run -v ./:/usr/src/regnify-api --rm regnify-api python -m pytest --cov-report term-missing --cov=src/users tests/users/http/test_roles.py
 
 	make kill-test
 
