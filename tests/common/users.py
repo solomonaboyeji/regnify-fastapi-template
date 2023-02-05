@@ -1,5 +1,6 @@
 import enum
 from uuid import UUID
+
 from src.pagination import OrderBy, OrderDirection
 from src.scopes import UserScope
 from src.users.crud.roles import RoleCRUD

@@ -1,8 +1,12 @@
 """User's Router"""
 
+from io import BytesIO
+from tempfile import NamedTemporaryFile
+
 from uuid import UUID
 from pydantic import EmailStr
-from fastapi import APIRouter, Depends, Header, Path, Query, Security, Body
+from fastapi import APIRouter, Depends, Header, Path, Query, Security, UploadFile, File
+from fastapi.responses import FileResponse
 from src import mail as mail_funcs
 
 from src.auth.dependencies import (
@@ -10,6 +14,7 @@ from src.auth.dependencies import (
     user_must_be_admin,
 )
 from src.config import setup_logger
+from src.files.schemas import FileObjectOut
 from src.scopes import UserScope
 from src.service import AppResponseModel, does_admin_token_match
 from src.pagination import CommonQueryParams
@@ -28,6 +33,7 @@ from src.users.schemas import (
     UserOut,
 )
 from src.users.services.users import UserService
+from src.files.utils import prepare_file_for_http_upload
 
 router = APIRouter(tags=["Users"], prefix="/users")
 
@@ -128,8 +134,6 @@ async def resend_invite(
     """Sends an email to the user on how to access their account again."""
 
     result = user_service.get_user_by_email(email)
-    print(result.success)
-    print(result.exception)
     if result.success:
         await mail_funcs.send_how_to_change_password_email(email)  # type: ignore
 
@@ -184,3 +188,45 @@ def read_user(
 ):
     result = user_service.get_user_by_id(id=user_id)
     return handle_result(result, schemas.UserOut)  # type: ignore
+
+
+@router.get(
+    "/{user_id}/download-photo",
+    response_class=FileResponse,
+)
+def download_user_photo(
+    user_id: UUID,
+    user_service: UserService = Depends(initiate_user_service),
+):
+    result = user_service.download_user_photo(user_id=user_id)
+    buffer: BytesIO = result.data[0]
+    file_object: FileObjectOut = result.data[1]
+
+    delete_immediately = False
+
+    with NamedTemporaryFile(
+        mode="w+b", suffix=file_object.extension, delete=delete_immediately
+    ) as file_out:
+        file_out.write(buffer.read())
+        return FileResponse(
+            file_out.name,
+            media_type=file_object.mime_type,
+            headers={"Cache-Control": "max-age=0"},
+        )
+
+
+@router.put("/{user_id}/upload-photo", response_model=schemas.ProfileOut)
+def upload_user_photo(
+    user_id: UUID,
+    file_to_upload: UploadFile = File(...),
+    user_service: UserService = Depends(initiate_user_service),
+):
+
+    the_file = prepare_file_for_http_upload(file_to_upload)
+
+    result = user_service.upload_user_photo(
+        user_id=user_id,
+        file_to_upload=the_file,
+        file_name=file_to_upload.filename,
+    )
+    return handle_result(result, schemas.ProfileOut)  # type: ignore

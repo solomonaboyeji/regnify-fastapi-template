@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+from email import header
 import pytest
 from fastapi.testclient import TestClient
 
@@ -7,6 +8,9 @@ from src.config import Settings, setup_logger
 from src.users.dependencies import anonymous_user
 from src.users.services.users import UserService
 from tests.users.http.conftest import login_test
+from src.files.utils import hash_file, hash_bytes
+
+from tests.files.service.test_service_files import FILE_PATH_UNDER_TEST
 
 logger = setup_logger()
 
@@ -325,3 +329,33 @@ async def test_user_can_change_password_with_token(
         data={"username": test_non_admin_user["email"], "password": test_password},
     )
     assert response.status_code == 200, response.content
+
+
+def test_upload_and_download_user_photo(
+    client: TestClient,
+    test_non_admin_user: dict,
+    test_admin_user_headers: dict,
+    test_non_admin_user_headers: dict,
+):
+    user_id = test_non_admin_user["id"]
+
+    endpoint = f"/users/{user_id}/upload-photo"
+
+    with open(FILE_PATH_UNDER_TEST, "rb") as f:
+        response = client.put(
+            endpoint, headers=test_non_admin_user_headers, files={"file_to_upload": f}
+        )
+        assert response.status_code == 200, response.json()
+
+    # * admin can upload for another user  right?
+    with open(FILE_PATH_UNDER_TEST, "rb") as f:
+        response = client.put(
+            endpoint, headers=test_admin_user_headers, files={"file_to_upload": f}
+        )
+        assert response.status_code == 200, response.json()
+
+    endpoint = f"/users/{user_id}/download-photo"
+    response = client.get(endpoint, headers=test_non_admin_user_headers)
+    assert response.status_code == 200, response.content
+    print(response.content)
+    assert hash_bytes(response.content) == hash_file(FILE_PATH_UNDER_TEST)

@@ -9,11 +9,13 @@ from src.exceptions import (
     BaseConflictException,
     BaseForbiddenException,
     BaseNotFoundException,
+    FileTooLargeException,
     GeneralException,
     handle_bad_request_exception,
     handle_conflict_exception,
     handle_forbidden_exception,
     handle_not_found_exception,
+    handle_file_too_large_exception,
 )
 
 from src.users import schemas
@@ -21,6 +23,8 @@ from src.users import schemas
 _T = TypeVar("_T")
 
 logger = setup_logger()
+
+ONE_MB_IN_BYTES = 1024 / 1024
 
 
 @lru_cache()
@@ -84,6 +88,8 @@ def handle_result(result: ServiceResult, expected_schema: BaseModel = None):  # 
         handle_bad_request_exception(result.exception)
     elif isinstance(result.exception, BaseNotFoundException):
         handle_not_found_exception(result.exception)
+    elif isinstance(result.exception, FileTooLargeException):
+        handle_file_too_large_exception(result.exception)
     elif isinstance(result.exception, BaseConflictException):
         handle_conflict_exception(result.exception)
     elif isinstance(result.exception, BaseForbiddenException):

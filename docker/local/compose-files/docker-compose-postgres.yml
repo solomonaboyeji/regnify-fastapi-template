@@ -13,9 +13,3 @@ services:
       POSTGRES_USER: regnify1234
       POSTGRES_PASSWORD: REGNIFY885
       POSTGRES_DB: regnify-db1234
-
-  adminer:
-    image: adminer
-    restart: always
-    ports:
-      - 8080:8080

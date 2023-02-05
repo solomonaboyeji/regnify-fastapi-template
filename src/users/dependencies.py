@@ -1,5 +1,7 @@
 from cgi import print_form
 from uuid import uuid4
+
+4
 from sqlalchemy.orm import Session
 from fastapi import Depends, HTTPException
 from src.auth.dependencies import get_current_active_user
@@ -72,6 +74,7 @@ def anonymous_user():
             last_name="Anonymous",
             first_name="User",
             avatar_url=get_default_avatar_url("Anonymous", User),
+            file_to_upload=None,
         ),
     )
 

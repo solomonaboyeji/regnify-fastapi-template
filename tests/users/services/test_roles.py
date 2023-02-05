@@ -1,4 +1,3 @@
-from uuid import uuid4
 from src.config import Settings
 from src.pagination import OrderBy, OrderDirection
 from src.scopes import UserScope
@@ -73,7 +72,7 @@ def test_get_single_role(test_db, test_user, role_service: RolesService):
 
     # * get a role that does not exist
     roles = get_test_all_roles(test_db, test_user)
-    result = role_service.get_role(uuid4())
+    result = role_service.get_role(923882818)
 
     assert isinstance(result, ServiceResult)
     assert not result.success
@@ -127,17 +126,23 @@ def test_cannot_update_duplicate_role(test_db, test_user):
     assert not edited_result.success
 
 
-def test_assign_role(test_db, test_user, role_service: RolesService):
+def test_assign_role(test_db, test_user):
+    role_service = RolesService(
+        db=test_db, app_settings=Settings(), requesting_user=test_user
+    )
     roles = get_test_all_roles(test_db, test_user)
     role = roles[0]
     assert isinstance(role, RoleOut)
     result = role_service.assign_role(role.id, test_user.id)
     assert isinstance(result, ServiceResult)
-    assert result.success
+    assert result.success, result.exception
     assert len(result.data.user_roles) > 0
 
 
-def test_get_user_assigned_to_roles(test_db, test_user, role_service: RolesService):
+def test_get_user_assigned_to_roles(test_db, test_user):
+    role_service = RolesService(
+        db=test_db, app_settings=Settings(), requesting_user=test_user
+    )
     roles = get_test_all_roles(test_db, test_user)
     role = roles[0]
     assert isinstance(role, RoleOut)

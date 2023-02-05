@@ -13,6 +13,7 @@ from src.users.routers.users import router as user_router
 from src.users.routers.roles import router as role_router
 from src.config import setup_logger
 from src.service import custom_openapi_with_scopes, get_settings
+from src.database import open_db_connections, close_db_connections
 
 from src.database import open_db_connections, close_db_connections
 

@@ -1,5 +1,5 @@
-from uuid import UUID
 from typing import Union
+from uuid import UUID
 from sqlalchemy.orm import Session
 from src.config import setup_logger
 from src.exceptions import GeneralException
@@ -78,7 +78,7 @@ class UserCRUD:
                 )
             )
 
-            hashed_password = get_password_hash(user.password)
+            hashed_password = get_password_hash(password=user.password)
             db_user = models.User(
                 email=user.email,
                 hashed_password=hashed_password,
@@ -117,4 +117,24 @@ class UserCRUD:
         self.db.add(db_profile)
         self.db.commit()
         self.db.refresh(db_profile)
+        return db_profile
+
+    def update_user_profile_photo(
+        self, user_id: UUID, file_object_id: UUID
+    ) -> models.Profile:
+        db_profile = (
+            self.db.query(models.Profile)
+            .join(models.User.profile)
+            .filter(models.User.id == user_id)
+            .first()
+        )
+        if db_profile is None:
+            raise GeneralException("The profile does not exist.")
+
+        setattr(db_profile, "photo_file_id", file_object_id)
+
+        self.db.add(db_profile)
+        self.db.commit()
+        self.db.refresh(db_profile)
+
         return db_profile

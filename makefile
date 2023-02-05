@@ -1,10 +1,11 @@
 
 # ****************** DIRECT DEVELOPMENT ****************** #
 
-start-uvicorn:
-	uvicorn src.main:app --reload --port 8100
+start-hypercorn:
+	hypercorn src.main:app --reload --bind 0.0.0.0:8100
 
 start-dev-postgres:
+	make down-dev-postgres
 	docker-compose -f ./docker/local/compose-files/docker-compose-postgres.yml up
 
 down-dev-postgres:
@@ -36,7 +37,7 @@ build-local:
 	docker compose -f docker/local/docker-compose.yml build 
 
 kill-local:
-	docker compose -f docker/local/docker-compose.yml down
+	docker compose -f docker/local/docker-compose.yml down -v --remove-orphans
 
 run-local-migrations:
 	docker compose -f docker/local/docker-compose.yml run -v ./:/usr/src/regnify-api  --rm regnify-api  alembic upgrade head
@@ -165,6 +166,42 @@ run-test-roles-http:
 	make kill-test
 
 # * ------ End User Modules ------ * #
+
+
+# * ------ File Module ------ * #
+
+# Runs all tests under the user modules
+run-test-files:
+	make kill-test
+
+	make run-test-migrations
+
+	# * run the tests
+	docker compose -f docker/test/docker-compose-test.yml run -v ${PWD}:/usr/src/regnify-api  --rm regnify-api python -m pytest --cov-report term-missing --cov=src/users tests/files
+
+	make kill-test
+
+run-test-files-crud:
+	make kill-test
+
+	make run-test-migrations
+
+	# * run the tests
+	docker compose -f docker/test/docker-compose-test.yml run -v ${PWD}:/usr/src/regnify-api  --rm regnify-api python -m pytest --cov-report term-missing --cov=src/files tests/files/crud/test_files.py
+
+	make kill-test
+
+run-test-files-services:
+	make kill-test
+
+	make run-test-migrations
+
+	# * run the tests
+	docker compose -f docker/test/docker-compose-test.yml run -v ${PWD}:/usr/src/regnify-api  --rm regnify-api python -m pytest --cov-report term-missing --cov=src/files tests/files/service/test_service_files.py
+
+	make kill-test
+
+# * ------ End File Modules ------ * #
 
 # ****************** END TESTS ****************** #
 

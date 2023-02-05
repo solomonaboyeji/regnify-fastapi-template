@@ -3,6 +3,10 @@
 from fastapi import HTTPException, status
 
 
+class FileTooLargeException(Exception):
+    pass
+
+
 class GeneralException(Exception):
     pass
 
@@ -43,9 +47,20 @@ def handle_conflict_exception(exception: Exception):
     ) from exception
 
 
+def handle_file_too_large_exception(exception: Exception):
+    """Raises an 413 HTTPException"""
+
+    raise HTTPException(
+        detail=str(exception), status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE
+    ) from exception
+
+
 def handle_forbidden_exception(exception: Exception):
     """Raises an 403 HTTPException"""
 
     raise HTTPException(
         detail=str(exception), status_code=status.HTTP_403_FORBIDDEN
     ) from exception
+
+
+FILE_DOES_NOT_EXIST_ERROR_MESSAGE = "The file does not exist in our records."

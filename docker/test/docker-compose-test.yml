@@ -9,10 +9,11 @@ services:
       context: ../../
       dockerfile: docker/Dockerfile
     
+    command: hypercorn src.main:app --reload --bind 0.0.0.0:8100
     volumes:
       - ./../../:/usr/src/regnify-api
 
-    command: uvicorn src.main:app --reload --port 8100
+    # command: uvicorn src.main:app --reload --port 8100
 
     environment:
       - MAIL_USERNAME=emailusername
@@ -59,11 +60,30 @@ services:
       - RESET_PASSWORD_UI_URL=http://localhost:8080/change-password
       - LOGIN_UI_URL=http://localhost:8080/login
 
+      - MINIO_HOST=regnify-minio:9000
+      - MINIO_ACCESS_KEY=Q3AM3UQ867SPQQA43P2F # for play.min.io
+      - MINIO_SECRET_KEY=zuf+tfteSlswRu7BJ86wekitnifILbZam1KYY3TG # for play.min.io
+      - SECURE_MINIO=False
   
 
     depends_on:
       - postgres
       - mailhog
+      - regnify-minio
+
+
+  regnify-minio:
+    container_name: regnify-minio
+    image: minio/minio
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - ./../../minio-storages:/data
+    environment:
+      MINIO_ROOT_USER: Q3AM3UQ867SPQQA43P2F
+      MINIO_ROOT_PASSWORD: zuf+tfteSlswRu7BJ86wekitnifILbZam1KYY3TG
+    command: server --console-address ":9001" /data
 
   postgres:
     image: postgres:15.0-alpine

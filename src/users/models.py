@@ -17,6 +17,7 @@ from sqlalchemy.dialects import postgresql
 from sqlalchemy.sql.functions import func
 
 from src.database import Base
+from src.models import FileObject
 from src.scopes import ProfileScope, RoleScope, UserScope
 
 
@@ -86,6 +87,11 @@ class Profile(Base):
     dob = Column(Date, nullable=True)
 
     user = relationship("User", back_populates="profile", lazy="joined")
+
+    photo_file_id = Column(
+        postgresql.UUID(as_uuid=True), ForeignKey("file_object.id", ondelete="SET NULL")
+    )
+    photo_file = relationship(FileObject, foreign_keys=[photo_file_id], lazy="joined")
 
     @staticmethod
     def full_scopes() -> list[str]:

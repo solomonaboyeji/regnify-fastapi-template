@@ -1,5 +1,5 @@
-import pytest
 from uuid import UUID, uuid4
+import pytest
 
 from src.config import setup_logger
 from src.exceptions import BaseConflictException, BaseNotFoundException

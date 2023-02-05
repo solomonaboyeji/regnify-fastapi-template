@@ -15,6 +15,6 @@ ADD . /usr/src/regnify-api/
 WORKDIR /usr/src/regnify-api/
 EXPOSE 8000
 
-RUN chmod +x entrypoint.sh
+RUN ["chmod", "+x", "/entrypoint.sh"]
 
 CMD [ "./entrypoint.sh" ]

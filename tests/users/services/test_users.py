@@ -1,19 +1,25 @@
+from calendar import c
 import datetime
 from datetime import timedelta
+from io import BytesIO
+import sre_parse
+from sys import float_repr_style
 import time
 from typing import Any
 from urllib import response
+import uuid
 
-from uuid import uuid4
 from jose import jwt
+from src.files.schemas import FileObjectOut
 
 from src.service import ServiceResult
 from src.users.exceptions import UserNotFoundException
-from src.users.models import User
+from src.users.models import Profile, User
 from src.users.schemas import UserCreate, UserUpdate
 from src.users.services.users import UserService
 
 from src.config import Settings, setup_logger
+from tests.files.service.test_service_files import FILE_PATH_UNDER_TEST
 
 logger = setup_logger()
 
@@ -126,7 +132,7 @@ def test_get_user_by_id(user_service: UserService):
     assert isinstance(user_with_id.data, User)
     assert user_with_id.exception == None
 
-    none_result = user_service.get_user_by_id(uuid4())
+    none_result = user_service.get_user_by_id(uuid.uuid4())
     assert not none_result.success
     assert none_result.data == None
     assert isinstance(none_result.exception, UserNotFoundException)
@@ -159,6 +165,78 @@ def test_update_user(test_db, app_settings, test_admin_user):
     assert result.data.is_super_admin
 
 
+def test_upload_user_photo(test_db, app_settings, test_admin_user, test_password):
+
+    user_service = UserService(
+        requesting_user=test_admin_user, db=test_db, app_settings=app_settings
+    )
+
+    result = user_service.get_user_by_email(prefix + "2@regnify.com")
+    assert isinstance(result, ServiceResult)
+    assert isinstance(result.data, User)
+    user_under_test: User = result.data
+
+    with open(FILE_PATH_UNDER_TEST, "rb") as f:
+        result = user_service.upload_user_photo(
+            user_id=uuid.UUID(str(user_under_test.id)),
+            file_to_upload=f,
+            file_name="simple-file.png",
+        )
+        assert result.success, result.exception
+        assert isinstance(result, ServiceResult)
+        assert result.data.photo_file != None
+        assert result.data.photo_file.original_file_name == "simple-file.png"
+
+    # * Test the download of the photo file
+    result = user_service.download_user_photo(
+        user_id=uuid.UUID(str(user_under_test.id))
+    )
+    assert result.success, result.exception
+
+    assert isinstance(result.data[0], BytesIO)
+    assert isinstance(result.data[1], FileObjectOut)
+    assert len(result.data[0].read()) > 0
+
+
+def test_non_admin_cannot_upload_photo_for_another_user(
+    test_db, app_settings, test_admin_user, test_password
+):
+
+    user_service = UserService(
+        requesting_user=test_admin_user, db=test_db, app_settings=app_settings
+    )
+
+    result = user_service.get_user_by_email(prefix + "2@regnify.com")
+    assert isinstance(result, ServiceResult)
+    assert isinstance(result.data, User)
+    user_under_test: User = result.data
+
+    # * create non admin user
+    non_admin_user: ServiceResult = user_service.create_user(
+        UserCreate(
+            email=prefix + "1-1-new-user@regnify.com",  # type: ignore
+            last_name="Simple",
+            first_name="User",
+            password=test_password,
+        )
+    )
+    assert isinstance(non_admin_user.data, User)
+    non_admin_user = non_admin_user.data
+
+    # * create user service with the non admin user as the requesting user.
+    non_admin_user_service = UserService(
+        requesting_user=non_admin_user, db=test_db, app_settings=app_settings
+    )
+
+    with open(FILE_PATH_UNDER_TEST, "rb") as f:
+        result = non_admin_user_service.upload_user_photo(
+            user_id=uuid.UUID(str(user_under_test.id)),
+            file_to_upload=f,
+            file_name="simple-file.png",
+        )
+        assert not result.success, result.exception
+
+
 def test_update_user_last_password_token(user_service: UserService):
     service_result = user_service.get_user_by_email(prefix + "2@regnify.com")
     assert isinstance(service_result, ServiceResult)
@@ -181,19 +259,24 @@ def test_change_password(user_service: UserService):
     assert old_hashed_password != updated_user.hashed_password  # type: ignore
 
     # * try updating a user that does not exist
-    service_result = user_service.update_user_password(uuid4(), "new-password")  # type: ignore
+    service_result = user_service.update_user_password(uuid.uuid4(), "new-password")  # type: ignore
     assert not service_result.success
 
 
 def test_create_request_password_token(
-    user_service: UserService, app_settings: Settings
+    test_db, test_user: User, app_settings: Settings
 ):
+    user_service = UserService(
+        db=test_db, requesting_user=test_user, app_settings=Settings()
+    )
+
     result = user_service.create_request_password("invalid@regnify.com")  # type: ignore
     assert isinstance(result, ServiceResult)
     assert not result.success
 
     service_result = user_service.get_user_by_email(prefix + "2@regnify.com")
     assert isinstance(service_result, ServiceResult)
+    assert service_result.success, service_result.exception
     user_under_test: User = service_result.data
 
     result = user_service.create_request_password(
@@ -210,11 +293,13 @@ def test_create_request_password_token(
     assert payload["type"] == "PASSWORD_REQUEST"
 
 
-def test_change_password_with_reset_token(
-    user_service: UserService, app_settings: Settings
-):
+def test_change_password_with_reset_token(test_db, test_user: User):
+    user_service = UserService(
+        db=test_db, requesting_user=test_user, app_settings=Settings()
+    )
     service_result = user_service.get_user_by_email(prefix + "2@regnify.com")
     assert isinstance(service_result, ServiceResult)
+    assert service_result.success, service_result.exception
     user_under_test: User = service_result.data
 
     result = user_service.create_request_password(
@@ -233,6 +318,7 @@ def test_should_not_be_able_change_password_with_expired_token(
 ):
     service_result = user_service.get_user_by_email(prefix + "2@regnify.com")
     assert isinstance(service_result, ServiceResult)
+    assert service_result.success, service_result.exception
     user_under_test: User = service_result.data
 
     result = user_service.create_request_password(
@@ -278,7 +364,7 @@ def test_should_not_be_able_to_change_with_invalid_user(
         minutes=app_settings.password_request_minutes
     )
     to_encode: dict[str, Any] = {
-        "sub": str(uuid4()),
+        "sub": str(10000000),
         "exp": expires_in,
         "type": "PASSWORD_REQUEST",
     }
