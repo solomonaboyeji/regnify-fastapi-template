@@ -58,7 +58,7 @@ class FileCRUD:
             file_name=file_name,
             bucket_id=db_bucket.id,
             mime_type=extension,
-            extension=mime_type,
+            extension=extension,
             total_bytes=total_bytes,
             backend_storage=backend_storage,
         )

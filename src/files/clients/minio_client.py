@@ -1,12 +1,14 @@
+from typing import BinaryIO
 from urllib3.response import HTTPResponse
 import os
 from datetime import timedelta
-from io import BufferedReader, BytesIO
+from io import BytesIO
 
 from minio.helpers import ObjectWriteResult
 
-from filetype import filetype
 from minio import Minio
+
+from src.files.utils import seek_to_start, meet_upload_file_limit_rule
 
 from minio.error import MinioException
 
@@ -56,7 +58,7 @@ class MinioClient(BaseS3Client):
 
     def upload_file(
         self,
-        buffer: BytesIO,
+        file_to_upload: BinaryIO,
         bucket_name: str,
         s3_file_name: str,
         mime_type: str,
@@ -80,34 +82,32 @@ class MinioClient(BaseS3Client):
 
         """
 
-        print(buffer.tell())
-        print(len(buffer.read()))
-
-        if buffer.seekable():
-            buffer.seek(0)
-
-        size = os.fstat(buffer.fileno()).st_size
+        seek_to_start(file_to_upload)  # type: ignore
+        size = os.fstat(file_to_upload.fileno()).st_size
 
         bytes_per_stream = size
         if size > self.settings.upload_file_bytes_per_stream:
             bytes_per_stream = self.settings.upload_file_bytes_per_stream
 
-        expected_max_file_size = (
-            self.settings.max_size_of_a_file
-            if file_size_limit <= 0
-            else file_size_limit
-        )
-        if size > expected_max_file_size:
-            buffer.close()
-            raise FileTooLargeException(
-                f"The file being uploaded has a file size larger than the limit. Max allowed file size: { expected_max_file_size/  ONE_MB_IN_BYTES } mb"
+        try:
+            self.logger.info(f"Using {file_size_limit} bytes as file limit")
+            expected_max_file_size = (
+                self.settings.max_size_of_a_file
+                if file_size_limit <= 0
+                else file_size_limit
             )
+            meet_upload_file_limit_rule(
+                file_to_upload, file_limit=expected_max_file_size
+            )
+        except GeneralException as raised_exception:
+            raise FileTooLargeException(str(raised_exception))
 
+        seek_to_start(file_to_upload)
         _: ObjectWriteResult = self.client.put_object(
             bucket_name=bucket_name,
             object_name=s3_file_name,
-            data=buffer,
-            length=bytes_per_stream,
+            data=file_to_upload,
+            length=size,
             content_type=mime_type,
         )
 

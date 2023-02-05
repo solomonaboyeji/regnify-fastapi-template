@@ -74,7 +74,7 @@ def anonymous_user():
             last_name="Anonymous",
             first_name="User",
             avatar_url=get_default_avatar_url("Anonymous", User),
-            photo_file=None,
+            file_to_upload=None,
         ),
     )
 

@@ -1,5 +1,4 @@
-from io import BufferedReader, BytesIO
-from typing import Union
+from typing import BinaryIO
 from src.config import Settings
 from src.files.clients.minio_client import MinioClient
 from src.files.utils import BackendStorageOption, S3FileData
@@ -22,14 +21,14 @@ class BackendStorage:
 
     def upload_file(
         self,
-        buffer: BytesIO,
+        file_to_upload: BinaryIO,
         s3_file_data: S3FileData,
         mime_type: str,
         file_size_limit: int = -1,
     ) -> int:
 
         file_size = self.client.upload_file(
-            buffer=buffer,
+            file_to_upload=file_to_upload,
             bucket_name=s3_file_data.bucket_name,
             s3_file_name=s3_file_data.file_name,
             file_size_limit=file_size_limit,

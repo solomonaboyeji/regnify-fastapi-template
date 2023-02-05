@@ -14,7 +14,7 @@ from src.files.schemas import FileObjectOut
 
 from src.service import ServiceResult
 from src.users.exceptions import UserNotFoundException
-from src.users.models import User
+from src.users.models import Profile, User
 from src.users.schemas import UserCreate, UserUpdate
 from src.users.services.users import UserService
 
@@ -179,10 +179,11 @@ def test_upload_user_photo(test_db, app_settings, test_admin_user, test_password
     with open(FILE_PATH_UNDER_TEST, "rb") as f:
         result = user_service.upload_user_photo(
             user_id=uuid.UUID(str(user_under_test.id)),
-            buffer=f,
+            file_to_upload=f,
             file_name="simple-file.png",
         )
         assert result.success, result.exception
+        assert isinstance(result, ServiceResult)
         assert result.data.photo_file != None
         assert result.data.photo_file.original_file_name == "simple-file.png"
 
@@ -230,7 +231,7 @@ def test_non_admin_cannot_upload_photo_for_another_user(
     with open(FILE_PATH_UNDER_TEST, "rb") as f:
         result = non_admin_user_service.upload_user_photo(
             user_id=uuid.UUID(str(user_under_test.id)),
-            buffer=f,
+            file_to_upload=f,
             file_name="simple-file.png",
         )
         assert not result.success, result.exception

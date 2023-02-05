@@ -7,6 +7,7 @@ from src.config import Settings
 from tests.utils import FILE_FIXTURES_PATH
 from src.service import ServiceResult
 from src.exceptions import FileTooLargeException
+from src.files.utils import ONE_MEGA_BYTE
 
 from src.files.schemas import FileObjectOut, ManyFileObjectsOut
 
@@ -28,7 +29,7 @@ def test_upload_and_download_of_file(test_db, file_user):
     for _ in range(0, MAX_UPLOAD_COUNT):
         with open(FILE_PATH_UNDER_TEST, "rb") as f:
             file_object = file_service.upload_file(
-                buffer=f,
+                file_to_upload=f,
                 user_id=file_user.id,
                 file_name="simple-file.jpg",
             )
@@ -105,20 +106,17 @@ def test_upload_file_larger_than_limit(test_db, file_user):
     with open(FILE_PATH_UNDER_TEST, "rb") as f:
         test_file_size_in_bytes = os.fstat(f.fileno()).st_size
 
-    assert test_file_size_in_bytes > 10
+    assert test_file_size_in_bytes > 100  # 100bytes
+    os.environ["MAX_SIZE_OF_A_FILE"] = "0.0001"  # mb (0.0001mb) == kb (100bytes)
 
-    if test_file_size_in_bytes > 10:
-        os.environ["MAX_SIZE_OF_A_FILE"] = f"{test_file_size_in_bytes - 5}"
-    else:
-        assert test_file_size_in_bytes > 1
-
+    print(os.environ["MAX_SIZE_OF_A_FILE"], test_file_size_in_bytes)
     with open(FILE_PATH_UNDER_TEST, "rb") as f:
         file_service = FileService(
             requesting_user=file_user, db=test_db, app_settings=Settings()
         )
 
         result = file_service.upload_file(
-            buffer=f, user_id=file_user.id, file_name="simple-file.jpg"
+            file_to_upload=f, user_id=file_user.id, file_name="simple-file.jpg"
         )
         assert isinstance(result, ServiceResult)
         assert not result.success, result.data
@@ -131,14 +129,14 @@ def test_upload_file_larger_than_limit(test_db, file_user):
         )
 
         result = file_service.upload_file(
-            buffer=f,
+            file_to_upload=f,
             user_id=file_user.id,
             file_name="simple-file.jpg",
-            file_size_limit=test_file_size_in_bytes - 1,
+            file_size_limit=int((test_file_size_in_bytes - 1) / ONE_MEGA_BYTE),
         )
         assert isinstance(result, ServiceResult)
         assert not result.success, result.data
         assert isinstance(result.exception, FileTooLargeException)
 
     # * reset
-    os.environ["MAX_SIZE_OF_A_FILE"] = f"{test_file_size_in_bytes}"
+    os.environ["MAX_SIZE_OF_A_FILE"] = f"{test_file_size_in_bytes / ONE_MEGA_BYTE}"

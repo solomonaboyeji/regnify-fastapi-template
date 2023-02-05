@@ -85,6 +85,8 @@ services:
       - USE_SSL=True
       - USE_TCP=True
 
+      - MAX_SIZE_OF_A_FILE=10
+
   
     depends_on:
       - postgres

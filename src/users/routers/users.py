@@ -33,6 +33,7 @@ from src.users.schemas import (
     UserOut,
 )
 from src.users.services.users import UserService
+from src.files.utils import prepare_file_for_http_upload
 
 router = APIRouter(tags=["Users"], prefix="/users")
 
@@ -133,8 +134,6 @@ async def resend_invite(
     """Sends an email to the user on how to access their account again."""
 
     result = user_service.get_user_by_email(email)
-    print(result.success)
-    print(result.exception)
     if result.success:
         await mail_funcs.send_how_to_change_password_email(email)  # type: ignore
 
@@ -203,7 +202,8 @@ def download_user_photo(
     buffer: BytesIO = result.data[0]
     file_object: FileObjectOut = result.data[1]
 
-    delete_immediately = True
+    delete_immediately = False
+
     with NamedTemporaryFile(
         mode="w+b", suffix=file_object.extension, delete=delete_immediately
     ) as file_out:
@@ -218,16 +218,15 @@ def download_user_photo(
 @router.put("/{user_id}/upload-photo", response_model=schemas.ProfileOut)
 def upload_user_photo(
     user_id: UUID,
-    photo_file: UploadFile = File(...),
+    file_to_upload: UploadFile = File(...),
     user_service: UserService = Depends(initiate_user_service),
 ):
 
-    print(type(photo_file.file))
+    the_file = prepare_file_for_http_upload(file_to_upload)
 
-    buffer = BytesIO(photo_file.file.read())
     result = user_service.upload_user_photo(
         user_id=user_id,
-        buffer=buffer,
-        file_name=photo_file.filename,
+        file_to_upload=the_file,
+        file_name=file_to_upload.filename,
     )
     return handle_result(result, schemas.ProfileOut)  # type: ignore

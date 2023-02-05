@@ -1,8 +1,9 @@
 import datetime
 from datetime import timedelta
 from io import BufferedReader, BytesIO
-from typing import Any, Tuple, Union
+from typing import Any, BinaryIO, Tuple, Union
 from uuid import UUID
+from filetype.helpers import is_image
 
 from sqlalchemy.orm import Session
 
@@ -14,6 +15,7 @@ from src.exceptions import (
     GeneralException,
     BaseNotFoundException,
 )
+from src.files.utils import meet_upload_file_limit_rule
 from src.security import decode_token, get_password_hash
 from src.service import (
     BaseService,
@@ -273,36 +275,41 @@ class UserService(BaseService):
         return success_service_result(updated_user)
 
     def upload_user_photo(
-        self, user_id: UUID, buffer: BytesIO, file_name: str
+        self, user_id: UUID, file_to_upload: BinaryIO, file_name: str
     ) -> ServiceResult[Union[GeneralException, Profile]]:
 
         if (
             self.requesting_user.id != user_id
             and not self.requesting_user.is_super_admin
         ):
-            buffer.close()
+            file_to_upload.close()
             return failed_service_result(
                 BaseForbiddenException("You are not allowed to perform this request.")
             )
 
         get_user_result = self.get_user_by_id(user_id)
         if not get_user_result.success:
-            buffer.close()
+            file_to_upload.close()
             return failed_service_result(
                 BaseNotFoundException("The user does not exist.")
             )
 
         user: User = get_user_result.data
 
+        if not is_image(file_to_upload):
+            return failed_service_result(
+                GeneralException("Only images are allowed to be uploaded.")
+            )
+
         upload_result = self.file_service.upload_file(
-            buffer=buffer,
+            file_to_upload=file_to_upload,
             user_id=user_id,
             file_name=file_name,
-            file_size_limit=self.app_settings.user_photo_file_limit,
+            file_size_limit=self.app_settings.user_file_to_upload_limit,
         )
 
         if not upload_result.success:
-            buffer.close()
+            file_to_upload.close()
             return failed_service_result(upload_result.exception)
 
         if user.profile.photo_file_id:

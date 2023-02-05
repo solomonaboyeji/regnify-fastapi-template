@@ -1,4 +1,4 @@
-from typing import Union
+from typing import BinaryIO, Union
 from uuid import UUID
 from sqlalchemy.orm import Session
 
@@ -66,13 +66,13 @@ class FileService(BaseService):
 
     def upload_file(
         self,
-        buffer: BytesIO,
+        file_to_upload: BinaryIO,
         user_id: UUID,
         file_name: str,
         file_size_limit: int = -1,
     ) -> ServiceResult[Union[FileObjectOut, GeneralException]]:
         try:
-            extension = str(filetype.guess_extension(buffer))
+            extension = str(filetype.guess_extension(file_to_upload))
         except TypeError:
             return failed_service_result(
                 GeneralException(
@@ -100,11 +100,11 @@ class FileService(BaseService):
             return failed_service_result(raised_exception)
 
         try:
-            mime_type = filetype.guess_mime(buffer)
+            mime_type = filetype.guess_mime(file_to_upload)
             if mime_type is None:
                 raise TypeError()
         except TypeError:
-            buffer.close()
+            file_to_upload.close()
             self.logger.info(
                 "Unable to detect the mime type of this file, resetting it to application/octet-stream"
             )
@@ -118,13 +118,13 @@ class FileService(BaseService):
 
         try:
             total_bytes = self.backend_storage.upload_file(
-                buffer=buffer,
+                file_to_upload=file_to_upload,
                 s3_file_data=s3_file_data,
                 file_size_limit=file_size_limit,
                 mime_type=mime_type,
             )
         except FileTooLargeException as raised_exception:
-            self.logger.exception(raised_exception)
+            self.logger.error(raised_exception)
             return failed_service_result(raised_exception)
 
         try:

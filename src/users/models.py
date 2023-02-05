@@ -88,7 +88,9 @@ class Profile(Base):
 
     user = relationship("User", back_populates="profile", lazy="joined")
 
-    photo_file_id = Column(postgresql.UUID(as_uuid=True), ForeignKey("file_object.id"))
+    photo_file_id = Column(
+        postgresql.UUID(as_uuid=True), ForeignKey("file_object.id", ondelete="SET NULL")
+    )
     photo_file = relationship(FileObject, foreign_keys=[photo_file_id], lazy="joined")
 
     @staticmethod
