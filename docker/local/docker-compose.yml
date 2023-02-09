@@ -1,5 +1,5 @@
 # Use postgres/example user/password credentials
-version: '3.1'
+version: '3.7'
 
 services:
   regnify-api:
@@ -71,7 +71,8 @@ services:
       - MINIO_SECRET_KEY=zuf+tfteSlswRu7BJ86wekitnifILbZam1KYY3TG # for play.min.io
       - SECURE_MINIO=False
       
-      - BACKEND_STORAGE_OPTION=MINIO_STORAGE # MINIO_STORAGE or GOOGLE_STORAGE
+      # - BACKEND_STORAGE_OPTION=MINIO_STORAGE # MINIO_STORAGE or GOOGLE_STORAGE
+      - BACKEND_STORAGE_OPTION=GOOGLE_STORAGE # MINIO_STORAGE or GOOGLE_STORAGE
 
       # * This should only be used for development on your local machine.
       # * Mount a volume on the server to reference these files.
@@ -87,6 +88,10 @@ services:
 
       - MAX_SIZE_OF_A_FILE=10
 
+      - GOOGLE_APPLICATION_CREDENTIALS=./gcs_credentials.json
+      - BASE_GCS_BUCKET_NAME=regnify-development
+
+      - GOOGLE_APPLICATION_CREDENTIALS_JSON_CONTENT=${GOOGLE_APPLICATION_CREDENTIALS_JSON_CONTENT}
   
     depends_on:
       - postgres

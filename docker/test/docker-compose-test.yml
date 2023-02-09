@@ -64,6 +64,10 @@ services:
       - MINIO_ACCESS_KEY=Q3AM3UQ867SPQQA43P2F # for play.min.io
       - MINIO_SECRET_KEY=zuf+tfteSlswRu7BJ86wekitnifILbZam1KYY3TG # for play.min.io
       - SECURE_MINIO=False
+
+      - GOOGLE_APPLICATION_CREDENTIALS = "./gcs_credentials.json"
+      - GOOGLE_APPLICATION_CREDENTIALS_JSON_CONTENT = ${GOOGLE_APPLICATION_CREDENTIALS_JSON_CONTENT}
+      - BASE_GCS_BUCKET_NAME=regnify-tests
   
 
     depends_on:
