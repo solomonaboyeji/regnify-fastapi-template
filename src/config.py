@@ -1,6 +1,7 @@
 """Global Configs"""
 
 import os
+from typing import Union
 from loguru import logger
 from pydantic import BaseSettings, BaseModel
 
@@ -102,6 +103,16 @@ class Settings(BaseSettings):
     user_file_to_upload_limit: float = float(
         os.getenv("MAX_SIZE_OF_A_USER_PHOTO", "5")  # 5 mb
     )
+    s3_bucket_location: str = os.getenv("S3_BUCKET_LOCATION", "EUROPE-WEST2")  # 5 mb
+
+    google_application_credentials: Union[str, None] = os.getenv(
+        "GOOGLE_APPLICATION_CREDENTIALS", None
+    )  #  path to read from
+    google_application_credentials_json_content: Union[str, None] = os.getenv(
+        "GOOGLE_APPLICATION_CREDENTIALS_JSON_CONTENT", None
+    )
+
+    base_gcs_bucket_name: str = os.getenv("BASE_GCS_BUCKET_NAME", "regnify-storage")
 
     def get_full_database_url(self):
         return f"postgresql://{self.db_user}:{self.db_password}@{self.db_host}:{self.db_port}/{self.db_name}"

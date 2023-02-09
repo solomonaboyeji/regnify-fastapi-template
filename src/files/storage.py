@@ -1,17 +1,48 @@
+from genericpath import isfile
+import os
 from typing import BinaryIO
 from src.config import Settings
+from src.files.clients.google_client import GoogleS3Storage
 from src.files.clients.minio_client import MinioClient
 from src.files.utils import BackendStorageOption, S3FileData
+from src.config import setup_logger
+from src.exceptions import GeneralException
 
 
 class BackendStorage:
     def __init__(self, settings: Settings) -> None:
+        self.settings = settings
+        self.logger = setup_logger()
         if settings.backend_storage_option == BackendStorageOption.MINIO_STORAGE.value:
             self.client = MinioClient(settings)
         elif (
             settings.backend_storage_option == BackendStorageOption.GOOGLE_STORAGE.value
         ):
-            raise NotImplementedError("Google Cloud Storage is not yet implemented.")
+            self._setup_google_application_credentials()
+            self.client = GoogleS3Storage(settings)
+
+    def _setup_google_application_credentials(self):
+        google_application_credentials = self.settings.google_application_credentials
+        google_application_credentials_json_content = (
+            self.settings.google_application_credentials_json_content
+        )
+        if google_application_credentials is None:
+            self.logger.debug(
+                "GOOGLE_APPLICATION_CREDENTIALS is not provided, will be read from a privileged service account."
+            )
+        else:
+            if google_application_credentials_json_content is None:
+                self.logger.error(
+                    "The GOOGLE_APPLICATION_CREDENTIALS_JSON_CONTENT needs to be provided."
+                )
+                raise GeneralException(
+                    "The GOOGLE_APPLICATION_CREDENTIALS_JSON_CONTENT needs to be provided."
+                )
+            if os.path.isfile(google_application_credentials):
+                os.remove(path=google_application_credentials)
+
+            with open(google_application_credentials, "w") as f:
+                f.write(google_application_credentials_json_content)
 
     def create_bucket(self, bucket_name: str):
         self.client.make_bucket(bucket_name)
